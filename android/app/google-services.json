@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238339267074",
+    "project_id": "adaptive-planner-cd88b",
+    "storage_bucket": "adaptive-planner-cd88b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238339267074:android:3c0fe87a0c1f882742e51b",
+        "android_client_info": {
+          "package_name": "com.example.adaptive_planner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGKyDzdDMtes43YvaE0ihON7B8hurr4Mo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
