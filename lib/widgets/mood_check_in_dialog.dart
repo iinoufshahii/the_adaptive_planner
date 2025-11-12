@@ -32,9 +32,9 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
 
   Future<void> _selectMood(String mood) async {
     if (_isSubmitting) return;
-    
+
     setState(() => _isSubmitting = true);
-    
+
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && mounted) {
       try {
@@ -42,7 +42,7 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
         if (mounted) {
           Navigator.of(context).pop();
           widget.onCompleted?.call();
-          
+
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -74,7 +74,7 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -111,7 +111,7 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            
+
             // Mood options grid
             GridView.builder(
               shrinkWrap: true,
@@ -126,7 +126,7 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
               itemBuilder: (context, index) {
                 final option = _moodOptions[index];
                 final isEnabled = !_isSubmitting;
-                
+
                 return Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -138,9 +138,9 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
                           color: theme.colorScheme.outline.withOpacity(0.3),
                         ),
                         borderRadius: BorderRadius.circular(12),
-                        color: isEnabled 
-                          ? theme.colorScheme.surface
-                          : theme.colorScheme.surface.withOpacity(0.5),
+                        color: isEnabled
+                            ? theme.colorScheme.surface
+                            : theme.colorScheme.surface.withOpacity(0.5),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -153,9 +153,10 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
                           Text(
                             option['mood'],
                             style: theme.textTheme.labelMedium?.copyWith(
-                              color: isEnabled 
-                                ? option['color']
-                                : theme.colorScheme.onSurface.withOpacity(0.5),
+                              color: isEnabled
+                                  ? option['color']
+                                  : theme.colorScheme.onSurface
+                                      .withOpacity(0.5),
                               fontWeight: FontWeight.w500,
                             ),
                             textAlign: TextAlign.center,
@@ -167,9 +168,9 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
                 );
               },
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Skip button
             TextButton(
               onPressed: _isSubmitting ? null : _dismiss,
@@ -180,7 +181,7 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
                 ),
               ),
             ),
-            
+
             // Loading indicator
             if (_isSubmitting)
               const Padding(
@@ -195,7 +196,8 @@ class _MoodCheckInDialogState extends State<MoodCheckInDialog> {
 }
 
 // Helper function to show the mood check-in dialog
-Future<void> showMoodCheckInDialog(BuildContext context, {
+Future<void> showMoodCheckInDialog(
+  BuildContext context, {
   VoidCallback? onDismissed,
   VoidCallback? onCompleted,
 }) {

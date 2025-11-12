@@ -1,10 +1,13 @@
 // lib/models/task.dart (UPDATED)
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'subtask.dart';
 
 // --- NEW ENUM DEFINITIONS ---
 enum TaskPriority { high, medium, low }
+
 enum TaskCategory { study, household, wellness, work, personal }
+
 enum TaskEnergyLevel { high, medium, low }
 // ----------------------------
 
@@ -18,6 +21,7 @@ class Task {
   final TaskCategory category; // Changed type from String to enum
   final TaskEnergyLevel requiredEnergy; // Changed type from String to enum
   final bool isCompleted;
+  final List<Subtask> subtasks; // Changed from List<String> to List<Subtask>
 
   Task({
     this.id,
@@ -29,8 +33,9 @@ class Task {
     required this.category,
     required this.requiredEnergy,
     this.isCompleted = false,
+    this.subtasks = const [],
   });
-  
+
   // Helper to convert enum to String for storage
   static String _enumToString(Object e) => e.toString().split('.').last;
 
@@ -53,6 +58,7 @@ class Task {
       'category': _enumToString(category),
       'requiredEnergy': _enumToString(requiredEnergy),
       'isCompleted': isCompleted,
+      'subtasks': subtasks.map((s) => s.toMap()).toList(), // Convert Subtask objects to maps
     };
     if (forCreate) data['createdAt'] = FieldValue.serverTimestamp();
     return data;
@@ -69,16 +75,24 @@ class Task {
       }
       return DateTime.now();
     }
+
     return Task(
       id: id,
       userId: (map['userId'] ?? '') as String,
       title: (map['title'] ?? 'Untitled') as String,
       description: map['description'] as String?,
       deadline: parseDeadline(map['deadline']),
-      priority: _stringToEnum(TaskPriority.values, (map['priority'] ?? 'medium') as String),
-      category: _stringToEnum(TaskCategory.values, (map['category'] ?? 'personal') as String),
-      requiredEnergy: _stringToEnum(TaskEnergyLevel.values, (map['requiredEnergy'] ?? 'medium') as String),
+      priority: _stringToEnum(
+          TaskPriority.values, (map['priority'] ?? 'medium') as String),
+      category: _stringToEnum(
+          TaskCategory.values, (map['category'] ?? 'personal') as String),
+      requiredEnergy: _stringToEnum(TaskEnergyLevel.values,
+          (map['requiredEnergy'] ?? 'medium') as String),
       isCompleted: (map['isCompleted'] ?? false) as bool,
+      subtasks: (map['subtasks'] as List<dynamic>?)
+              ?.map((s) => Subtask.fromMap(s as Map<String, dynamic>))
+              .toList() ??
+          [], // Parse subtasks as Subtask objects
     );
   }
 
@@ -93,6 +107,7 @@ class Task {
     TaskCategory? category,
     TaskEnergyLevel? requiredEnergy,
     bool? isCompleted,
+    List<Subtask>? subtasks,
   }) {
     return Task(
       id: id ?? this.id,
@@ -104,6 +119,7 @@ class Task {
       category: category ?? this.category,
       requiredEnergy: requiredEnergy ?? this.requiredEnergy,
       isCompleted: isCompleted ?? this.isCompleted,
+      subtasks: subtasks ?? this.subtasks,
     );
   }
 }

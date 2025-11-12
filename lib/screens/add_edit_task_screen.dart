@@ -33,7 +33,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
     final task = widget.task;
     _titleController.text = task?.title ?? '';
     _descriptionController.text = task?.description ?? '';
-    _selectedDeadline = task?.deadline ?? DateTime.now().add(const Duration(hours: 1));
+    _selectedDeadline =
+        task?.deadline ?? DateTime.now().add(const Duration(hours: 1));
     _selectedPriority = task?.priority ?? TaskPriority.low;
     _selectedCategory = task?.category ?? TaskCategory.personal;
     _selectedEnergy = task?.requiredEnergy ?? TaskEnergyLevel.low;
@@ -48,10 +49,11 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
 
   Future<void> _selectDateTime() async {
     final theme = Theme.of(context);
+    final now = DateTime.now();
     final date = await showDatePicker(
       context: context,
-      initialDate: _selectedDeadline,
-      firstDate: DateTime.now(),
+      initialDate: _selectedDeadline.isBefore(now) ? now : _selectedDeadline,
+      firstDate: now,
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       builder: (context, child) {
         // Light wrap customization while respecting current brightness
@@ -91,7 +93,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
     if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You must be logged in to save a task.')),
+          const SnackBar(
+              content: Text('You must be logged in to save a task.')),
         );
       }
       return;
@@ -101,7 +104,9 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
       id: widget.task?.id,
       userId: user.uid,
       title: _titleController.text.trim(),
-      description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+      description: _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim(),
       deadline: _selectedDeadline,
       priority: _selectedPriority,
       category: _selectedCategory,
@@ -135,7 +140,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
       appBar: AppBar(
         title: Text(
           isEditing ? 'Edit Task' : 'New Task',
-          style: theme.textTheme.titleLarge?.copyWith(color: onSurface, fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleLarge
+              ?.copyWith(color: onSurface, fontWeight: FontWeight.w600),
         ),
         backgroundColor: theme.colorScheme.surface,
         elevation: 0,
@@ -147,10 +153,16 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextInput(context: context, controller: _titleController, label: 'Title', validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Please enter a title.';
-                return null;
-              }),
+              _buildTextInput(
+                  context: context,
+                  controller: _titleController,
+                  label: 'Title',
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Please enter a title.';
+                    }
+                    return null;
+                  }),
               const SizedBox(height: 20),
               _buildTextInput(
                 context: context,
@@ -192,7 +204,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
                     isEditing ? 'Update Task' : 'Create Task',
@@ -235,7 +248,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.primary.withOpacity(0.8), width: 2),
+          borderSide: BorderSide(
+              color: theme.colorScheme.primary.withOpacity(0.8), width: 2),
         ),
       ),
       validator: validator,
@@ -258,7 +272,8 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.colorScheme.secondaryContainer,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           child: Text(
             'Change',
@@ -284,16 +299,19 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
       children: [
         Text(
           '$label:',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: onSurface.withOpacity(0.9)),
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: onSurface.withOpacity(0.9)),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: onSurface.withOpacity(0.15)),
-            ),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: onSurface.withOpacity(0.15)),
+          ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<T>(
               value: value,
@@ -301,10 +319,13 @@ class _AddEditTaskScreenState extends State<AddEditTaskScreen> {
               style: TextStyle(color: onSurface, fontSize: 16),
               dropdownColor: theme.colorScheme.surface,
               onChanged: onChanged,
-              items: items.map((e) => DropdownMenuItem<T>(
-                value: e,
-                child: Text(formatEnum(e), style: TextStyle(color: onSurface)),
-              )).toList(),
+              items: items
+                  .map((e) => DropdownMenuItem<T>(
+                        value: e,
+                        child: Text(formatEnum(e),
+                            style: TextStyle(color: onSurface)),
+                      ))
+                  .toList(),
             ),
           ),
         ),

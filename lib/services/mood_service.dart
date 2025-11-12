@@ -26,14 +26,14 @@ class MoodService {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    
+
     final query = await _col
         .where('userId', isEqualTo: userId)
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .where('date', isLessThan: Timestamp.fromDate(end))
         .limit(1)
         .get();
-    
+
     return query.docs.isNotEmpty;
   }
 
@@ -48,7 +48,10 @@ class MoodService {
         .where('date', isLessThan: end)
         .orderBy('date')
         .snapshots()
-        .map((s) => s.docs.map((d) => MoodCheckIn.fromMap(d.data() as Map<String, dynamic>, d.id)).toList());
+        .map((s) => s.docs
+            .map((d) =>
+                MoodCheckIn.fromMap(d.data() as Map<String, dynamic>, d.id))
+            .toList());
   }
 
   // Latest mood for today (or null)
@@ -59,15 +62,20 @@ class MoodService {
   // Last 7 days inclusive (day aligned)
   Stream<List<MoodCheckIn>> last7Days(String userId) {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
-    final end = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final start = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(days: 6));
+    final end =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
     return _col
         .where('userId', isEqualTo: userId)
         .where('date', isGreaterThanOrEqualTo: start)
         .where('date', isLessThan: end)
         .orderBy('date')
         .snapshots()
-        .map((s) => s.docs.map((d) => MoodCheckIn.fromMap(d.data() as Map<String, dynamic>, d.id)).toList());
+        .map((s) => s.docs
+            .map((d) =>
+                MoodCheckIn.fromMap(d.data() as Map<String, dynamic>, d.id))
+            .toList());
   }
 
   // Monthly check-ins for heat map
@@ -80,7 +88,10 @@ class MoodService {
         .where('date', isLessThan: next)
         .orderBy('date')
         .snapshots()
-        .map((s) => s.docs.map((d) => MoodCheckIn.fromMap(d.data() as Map<String, dynamic>, d.id)).toList());
+        .map((s) => s.docs
+            .map((d) =>
+                MoodCheckIn.fromMap(d.data() as Map<String, dynamic>, d.id))
+            .toList());
   }
 
   // Streak (consecutive days with at least one check-in up to today)
@@ -96,7 +107,7 @@ class MoodService {
           .where('date', isLessThan: today.add(const Duration(days: 1)))
           .orderBy('date', descending: true)
           .get();
-      
+
       final daysWith = <DateTime>{};
       for (final d in snap.docs) {
         final data = d.data() as Map<String, dynamic>;
@@ -109,14 +120,16 @@ class MoodService {
         }
         daysWith.add(DateTime(dt.year, dt.month, dt.day));
       }
-      
+
       int streak = 0;
       for (int offset = 0; offset < 61; offset++) {
         final day = today.subtract(Duration(days: offset));
         if (daysWith.contains(day)) {
           streak++;
         } else {
-          if (offset == 0) continue; // allow zero-today case to not break if desire; but we'll break anyway
+          if (offset == 0) {
+            continue; // allow zero-today case to not break if desire; but we'll break anyway
+          }
           break;
         }
       }

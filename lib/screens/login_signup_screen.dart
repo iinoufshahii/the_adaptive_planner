@@ -4,6 +4,7 @@ import 'package:adaptive_planner/screens/dashboard_screen.dart';
 import 'package:adaptive_planner/screens/forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:ui';
 
 class LoginSignupScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -37,7 +38,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
+    _tabController = TabController(
+        length: 2, vsync: this, initialIndex: widget.initialTabIndex);
   }
 
   @override
@@ -59,7 +61,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
       SnackBar(
         content: Row(
           children: [
-            Icon(isError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white),
+            Icon(isError ? Icons.error_outline : Icons.check_circle_outline,
+                color: Colors.white),
             const SizedBox(width: 10),
             Expanded(child: Text(message)),
           ],
@@ -106,11 +109,13 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
     if (!_signupFormKey.currentState!.validate()) return; // Validate form
     setState(() => _isLoading = true);
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: _signupEmailController.text.trim(),
         password: _signupPasswordController.text.trim(),
       );
-      await userCredential.user?.updateDisplayName(_signupNameController.text.trim());
+      await userCredential.user
+          ?.updateDisplayName(_signupNameController.text.trim());
       if (mounted) {
         _showFeedback('Account created');
         Navigator.of(context).pushAndRemoveUntil(
@@ -124,8 +129,6 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -147,41 +150,82 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Theme(
-                // --- This forces the card to always use the light theme ---
-                data: appTheme,
-                child: Card(
-                  elevation: 8,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        // Far shadow (3D effect)
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 32,
+                          offset: const Offset(0, 16),
+                        ),
+                        // Mid shadow
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                        // Close shadow
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Tab Bar
+                        // Tab Bar with modern styling
                         Container(
+                          margin: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: mutedNeutralLight,
-                            borderRadius: BorderRadius.circular(19),
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: TabBar(
                             controller: _tabController,
                             indicatorSize: TabBarIndicatorSize.tab,
+                            dividerHeight: 0,
                             indicator: BoxDecoration(
-                              borderRadius: BorderRadius.circular(19),
-                              color: softBlue.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(10),
+                              gradient: LinearGradient(
+                                colors: [softBlue, Colors.blue.shade500],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: softBlue.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            labelColor: mutedNeutralDark,
-                            unselectedLabelColor: mutedNeutralDark.withOpacity(0.6),
+                            labelColor: Colors.white,
+                            unselectedLabelColor: Colors.grey.shade600,
+                            labelStyle: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            ),
                             tabs: const [
                               Tab(text: 'Login'),
                               Tab(text: 'Signup'),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
                         // Tab Content
                         SizedBox(
-                          height: 400, // Fixed height for the forms
+                          height: 380,
                           child: TabBarView(
                             controller: _tabController,
                             children: [
@@ -206,55 +250,109 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
   Widget _buildLoginForm() {
     return Form(
       key: _loginFormKey,
-      child: Column(
-        children: [
-          _buildTextField(
-            controller: _loginEmailController,
-            label: 'Email Address',
-            icon: Icons.email_outlined,
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || !value.contains('@')) {
-                return 'Please enter a valid email.';
-              }
-              return null;
-            },
-          ),
-          _buildTextField(
-            controller: _loginPasswordController,
-            label: 'Password',
-            icon: Icons.lock_outline,
-            obscure: true,
-            validator: (value) {
-              if (value == null || value.length < 6) {
-                return 'Password must be at least 6 characters.';
-              }
-              return null;
-            },
-          ),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _login,
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: mutedNeutralDark)
-                  : const Text('Log In'),
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: _isLoading ? null : () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ForgotPasswordScreen(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildTextField(
+                controller: _loginEmailController,
+                label: 'Email Address',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || !value.contains('@')) {
+                    return 'Please enter a valid email.';
+                  }
+                  return null;
+                },
+              ),
+              _buildTextField(
+                controller: _loginPasswordController,
+                label: 'Password',
+                icon: Icons.lock_outline,
+                obscure: true,
+                validator: (value) {
+                  if (value == null || value.length < 6) {
+                    return 'Password must be at least 6 characters.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [mintGreen, Colors.green.shade500],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: mintGreen.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                          BoxShadow(
+                            color: mintGreen.withValues(alpha: 0.15),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _isLoading ? null : _login,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: const Text(
+                              'Log In',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              );
-            },
-            child: Text('Forgot Password?', style: TextStyle(color: mutedNeutralDark.withOpacity(0.7))),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                child: const Text(
+                  'Forgot Password?',
+                  style: TextStyle(
+                    color: softBlue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -262,66 +360,110 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
   Widget _buildSignupForm() {
     return Form(
       key: _signupFormKey,
-      child: Column(
-        children: [
-          _buildTextField(
-            controller: _signupNameController,
-            label: 'Full Name',
-            icon: Icons.person_outline,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your name.';
-              }
-              return null;
-            },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildTextField(
+                controller: _signupNameController,
+                label: 'Full Name',
+                icon: Icons.person_outline,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your name.';
+                  }
+                  return null;
+                },
+              ),
+              _buildTextField(
+                controller: _signupEmailController,
+                label: 'Email Address',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || !value.contains('@')) {
+                    return 'Please enter a valid email.';
+                  }
+                  return null;
+                },
+              ),
+              _buildTextField(
+                controller: _signupPasswordController,
+                label: 'Password',
+                icon: Icons.lock_outline,
+                obscure: true,
+                validator: (value) {
+                  if (value == null || value.length < 6) {
+                    return 'Password must be at least 6 characters.';
+                  }
+                  return null;
+                },
+              ),
+              _buildTextField(
+                controller: _signupConfirmPasswordController,
+                label: 'Confirm Password',
+                icon: Icons.lock_outline,
+                obscure: true,
+                validator: (value) {
+                  if (value != _signupPasswordController.text) {
+                    return 'Passwords do not match.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [softBlue, Colors.blue.shade500],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: softBlue.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                          BoxShadow(
+                            color: softBlue.withValues(alpha: 0.15),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _isLoading ? null : _signup,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: const Text(
+                              'Sign Up',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          _buildTextField(
-            controller: _signupEmailController,
-            label: 'Email Address',
-            icon: Icons.email_outlined,
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || !value.contains('@')) {
-                return 'Please enter a valid email.';
-              }
-              return null;
-            },
-          ),
-          _buildTextField(
-            controller: _signupPasswordController,
-            label: 'Password',
-            icon: Icons.lock_outline,
-            obscure: true,
-            validator: (value) {
-              if (value == null || value.length < 6) {
-                return 'Password must be at least 6 characters.';
-              }
-              return null;
-            },
-          ),
-          _buildTextField(
-            controller: _signupConfirmPasswordController,
-            label: 'Confirm Password',
-            icon: Icons.lock_outline,
-            obscure: true,
-            validator: (value) {
-              if (value != _signupPasswordController.text) {
-                return 'Passwords do not match.';
-              }
-              return null;
-            },
-          ),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _signup,
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: mutedNeutralDark)
-                  : const Text('Sign Up'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -336,7 +478,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
     String? Function(String?)? validator,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
         controller: controller,
         obscureText: obscure,
@@ -344,10 +486,34 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
         validator: validator,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon),
+          prefixIcon: Icon(icon, size: 20, color: softBlue),
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.9),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
           ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: softBlue, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          labelStyle: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
+          ),
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+        ),
+        style: TextStyle(
+          color: mutedNeutralDark,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

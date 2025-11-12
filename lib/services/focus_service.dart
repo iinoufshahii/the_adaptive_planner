@@ -53,7 +53,7 @@ class FocusService {
         .doc('prefs')
         .set(prefs.toMap(), SetOptions(merge: true));
   }
-  
+
   /// Stores the last date the daily progress was reset.
   Future<void> setLastResetDate(String userId, DateTime date) async {
     final isoDate = "${date.year}-${date.month}-${date.day}";

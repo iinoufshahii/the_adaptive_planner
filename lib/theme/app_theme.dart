@@ -37,8 +37,7 @@ final ThemeData appTheme = ThemeData(
   textTheme: const TextTheme(
     bodyLarge: TextStyle(color: mutedNeutralDark),
     bodyMedium: TextStyle(color: mutedNeutralDark),
-    titleLarge:
-        TextStyle(color: mutedNeutralDark, fontWeight: FontWeight.bold),
+    titleLarge: TextStyle(color: mutedNeutralDark, fontWeight: FontWeight.bold),
     headlineSmall:
         TextStyle(color: mutedNeutralDark, fontWeight: FontWeight.bold),
   ),
@@ -80,11 +79,12 @@ final ThemeData darkTheme = ThemeData(
   useMaterial3: true,
   fontFamily: 'Roboto',
   brightness: Brightness.dark,
-  scaffoldBackgroundColor: const Color(0xFF121212), // Material Design standard dark background
+  scaffoldBackgroundColor:
+      const Color(0xFF121212), // Material Design standard dark background
   colorScheme: const ColorScheme.dark(
     primary: softBlue,
     secondary: mintGreen,
-    surface: Color(0xFF1E1E1E),   // Color for card backgrounds
+    surface: Color(0xFF1E1E1E), // Color for card backgrounds
     onSurface: Color(0xFFEAEAEA),
     error: Colors.redAccent,
   ),
@@ -103,7 +103,9 @@ final ThemeData darkTheme = ThemeData(
   // Updated text theme for better visibility
   textTheme: TextTheme(
     bodyLarge: const TextStyle(color: Color(0xFFEAEAEA)),
-    bodyMedium: TextStyle(color: const Color(0xFFEAEAEA).withOpacity(0.8)), // Subtler color for less important text
+    bodyMedium: TextStyle(
+        color: const Color(0xFFEAEAEA)
+            .withOpacity(0.8)), // Subtler color for less important text
     titleLarge:
         const TextStyle(color: Color(0xFFEAEAEA), fontWeight: FontWeight.bold),
     headlineSmall:

@@ -24,7 +24,8 @@ class FocusTimerManager extends ChangeNotifier {
   String? _activeSessionId;
   int _lastPersistedMinutes = 0;
   DateTime? _lastSync;
-  DateTime? _lastPersistedDate; // Tracks the calendar day of the last persisted minutes
+  DateTime?
+      _lastPersistedDate; // Tracks the calendar day of the last persisted minutes
 
   // Public getters
   PomodoroPhase get phase => _phase;
@@ -41,6 +42,7 @@ class FocusTimerManager extends ChangeNotifier {
     }
     return _lastPersistedMinutes;
   }
+
   DateTime? get lastSync => _lastSync;
 
   Future<void> loadPrefs() async {
@@ -55,8 +57,11 @@ class FocusTimerManager extends ChangeNotifier {
     if (_isPaused) return;
     if (_remainingSeconds > 0) {
       _remainingSeconds--;
-      if (_phase == PomodoroPhase.work && _phaseStart != null && _activeSessionId != null) {
-        final elapsedMinutes = DateTime.now().difference(_phaseStart!).inMinutes;
+      if (_phase == PomodoroPhase.work &&
+          _phaseStart != null &&
+          _activeSessionId != null) {
+        final elapsedMinutes =
+            DateTime.now().difference(_phaseStart!).inMinutes;
         if (elapsedMinutes > _lastPersistedMinutes) {
           _updateActiveSession(elapsedMinutes);
         }
@@ -80,7 +85,7 @@ class FocusTimerManager extends ChangeNotifier {
     _lastSync = null;
     notifyListeners();
   }
-  
+
   Future<void> _createNewSession() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _phaseStart == null) return;
@@ -127,7 +132,9 @@ class FocusTimerManager extends ChangeNotifier {
   /// without wiping the saved minutes from the dashboard progress until a new
   /// work session starts.
   Future<void> saveAndEnd() async {
-    if (_phase == PomodoroPhase.work || _phase == PomodoroPhase.shortBreak || _phase == PomodoroPhase.longBreak) {
+    if (_phase == PomodoroPhase.work ||
+        _phase == PomodoroPhase.shortBreak ||
+        _phase == PomodoroPhase.longBreak) {
       await _saveProgress();
     }
     reset(clearSaved: false); // keep lastPersistedMinutes for dashboard display
@@ -149,8 +156,8 @@ class FocusTimerManager extends ChangeNotifier {
 
   Future<void> _updateActiveSession(int minutes) async {
     if (_activeSessionId == null) return;
-  _lastPersistedMinutes = minutes;
-  _lastPersistedDate = DateTime.now();
+    _lastPersistedMinutes = minutes;
+    _lastPersistedDate = DateTime.now();
     _lastSync = DateTime.now();
     // Fire and forget
     unawaited(_focusService.updateSession(

@@ -50,8 +50,9 @@ class JournalService {
     // Now, analyze the text in the background and update the entry
     try {
       // The AI service now returns a Map<String, dynamic>
-      final Map<String, dynamic> aiResult = await _aiService.analyzeJournalEntry(text);
-      
+      final Map<String, dynamic> aiResult =
+          await _aiService.analyzeJournalEntry(text);
+
       // VVV THIS IS THE UPDATED PART VVV
       await docRef.update({
         'mood': aiResult['mood'],
@@ -85,7 +86,8 @@ class JournalService {
 
     // Now, re-run the analysis in the background
     try {
-      final Map<String, dynamic> aiResult = await _aiService.analyzeJournalEntry(newText);
+      final Map<String, dynamic> aiResult =
+          await _aiService.analyzeJournalEntry(newText);
       await _firestore.collection('journals').doc(entryId).update({
         'mood': aiResult['mood'],
         'aiFeedback': aiResult['feedback'],
@@ -100,6 +102,7 @@ class JournalService {
       });
     }
   }
+
   // VVV ADD THIS NEW METHOD VVV
   /// Saves a simple mood check-in entry.
   Future<void> addMoodCheckIn(String userId, String mood) async {
@@ -133,7 +136,8 @@ class JournalService {
       if (snapshot.docs.isEmpty) {
         return null; // No mood check-in for today yet
       }
-      return JournalEntry.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
+      return JournalEntry.fromMap(
+          snapshot.docs.first.data(), snapshot.docs.first.id);
     });
   }
 }

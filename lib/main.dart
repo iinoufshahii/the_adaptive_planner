@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/focus_timer_manager.dart';
 import 'package:provider/provider.dart';
-import 'firebase_options.dart'; 
+import 'firebase_options.dart';
 import 'services/focus_service.dart';
 import 'screens/pomodoro_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -24,7 +24,7 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // The app now starts wrapped in a provider for theme management
   final focusTimerManager = FocusTimerManager();
   await focusTimerManager.loadPrefs();
@@ -60,11 +60,11 @@ class MyApp extends StatelessWidget {
 
         return MaterialApp(
           title: 'Adaptive Student Planner & Journal',
-            debugShowCheckedModeBanner: false,
-            theme: appTheme,
-            darkTheme: darkTheme,
-            themeMode: mode,
-            home: const _RootEntry(),
+          debugShowCheckedModeBanner: false,
+          theme: appTheme,
+          darkTheme: darkTheme,
+          themeMode: mode,
+          home: const _RootEntry(),
         );
       },
     );
@@ -96,7 +96,8 @@ class FocusFloatingTimerOverlay extends StatefulWidget {
   const FocusFloatingTimerOverlay({super.key});
 
   @override
-  State<FocusFloatingTimerOverlay> createState() => _FocusFloatingTimerOverlayState();
+  State<FocusFloatingTimerOverlay> createState() =>
+      _FocusFloatingTimerOverlayState();
 }
 
 class _FocusFloatingTimerOverlayState extends State<FocusFloatingTimerOverlay> {
@@ -123,7 +124,8 @@ class _FocusFloatingTimerOverlayState extends State<FocusFloatingTimerOverlay> {
   @override
   Widget build(BuildContext context) {
     final phase = _manager.phase;
-    final running = phase != PomodoroPhase.idle && _manager.remainingSeconds > 0;
+    final running =
+        phase != PomodoroPhase.idle && _manager.remainingSeconds > 0;
     if (!running) return const SizedBox.shrink();
     final theme = Theme.of(context);
     String format(int ts) {
@@ -131,6 +133,7 @@ class _FocusFloatingTimerOverlayState extends State<FocusFloatingTimerOverlay> {
       final s = (ts % 60).toString().padLeft(2, '0');
       return '$m:$s';
     }
+
     return Positioned(
       left: position.dx,
       top: position.dy,
@@ -139,7 +142,9 @@ class _FocusFloatingTimerOverlayState extends State<FocusFloatingTimerOverlay> {
         onPointerUp: (_) => setState(() => dragging = false),
         child: Draggable(
           feedback: _bubble(theme, format(_manager.remainingSeconds)),
-          childWhenDragging: Opacity(opacity: 0.3, child: _bubble(theme, format(_manager.remainingSeconds))),
+          childWhenDragging: Opacity(
+              opacity: 0.3,
+              child: _bubble(theme, format(_manager.remainingSeconds))),
           onDragEnd: (d) {
             // Validate offset to prevent NaN values and keep within screen bounds
             final newOffset = d.offset;
@@ -154,7 +159,9 @@ class _FocusFloatingTimerOverlayState extends State<FocusFloatingTimerOverlay> {
           },
           child: GestureDetector(
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => PomodoroScreen(focusService: FocusService())));
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) =>
+                      PomodoroScreen(focusService: FocusService())));
             },
             child: _bubble(theme, format(_manager.remainingSeconds)),
           ),
@@ -173,15 +180,20 @@ class _FocusFloatingTimerOverlayState extends State<FocusFloatingTimerOverlay> {
         height: 84,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(colors: [theme.colorScheme.primary, theme.colorScheme.secondary]),
+          gradient: LinearGradient(
+              colors: [theme.colorScheme.primary, theme.colorScheme.secondary]),
           boxShadow: [
-            BoxShadow(color: theme.colorScheme.primary.withOpacity(.4), blurRadius: 12, offset: const Offset(0, 4)),
+            BoxShadow(
+                color: theme.colorScheme.primary.withOpacity(.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4)),
           ],
         ),
         alignment: Alignment.center,
         child: Text(
           time,
-          style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onPrimary, fontWeight: FontWeight.bold),
+          style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onPrimary, fontWeight: FontWeight.bold),
         ),
       ),
     );

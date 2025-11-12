@@ -16,7 +16,8 @@ class PomodoroScreen extends StatefulWidget {
   State<PomodoroScreen> createState() => _PomodoroScreenState();
 }
 
-class _PomodoroScreenState extends State<PomodoroScreen> with TickerProviderStateMixin {
+class _PomodoroScreenState extends State<PomodoroScreen>
+    with TickerProviderStateMixin {
   final FocusTimerManager _manager = FocusTimerManager();
   late final AnimationController _pulseController;
 
@@ -248,7 +249,8 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter old) => old.progress != progress || old.color != color;
+  bool shouldRepaint(covariant _RingPainter old) =>
+      old.progress != progress || old.color != color;
 }
 
 class _PersistenceHint extends StatelessWidget {
@@ -269,7 +271,7 @@ class _PersistenceHint extends StatelessWidget {
         text,
         style: TextStyle(
           fontSize: 12,
-            fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w500,
           color: color.withOpacity(0.75),
           letterSpacing: 0.3,
         ),

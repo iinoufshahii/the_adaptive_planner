@@ -54,16 +54,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-              onPressed: () async {
-                Navigator.of(ctx).pop();
-                await _logout();
-              },
-              child: _isLoggingOut
-                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Logout'),
-            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await _logout();
+            },
+            child: _isLoggingOut
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Show About App dialog ---
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('About Adaptive Planner'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Adaptive Planner', 
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 8),
+            Text('Version: 1.0.0'),
+            SizedBox(height: 16),
+            Text('An intelligent task management app that adapts to your mood and energy levels.'),
+            SizedBox(height: 16),
+            Text('Features:'),
+            Text('• AI-powered mood analysis'),
+            Text('• Smart task prioritization'),
+            Text('• Intelligent journaling'),
+            Text('• Task breakdown assistance'),
+            Text('• Focus sessions & Pomodoro timer'),
+            SizedBox(height: 16),
+            Text('Developed with ❤️ using Flutter & Firebase'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Show Help & Support dialog ---
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Help & Support'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Getting Started:', 
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('1. Add your first task in the Dashboard'),
+            Text('2. Write journal entries to track your mood'),
+            Text('3. Let AI analyze your emotions and suggest task priorities'),
+            Text('4. Use the Task Breakdown feature for complex projects'),
+            SizedBox(height: 16),
+            Text('Tips for Best Results:', 
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('• Write honest, detailed journal entries'),
+            Text('• Check in with your mood regularly'),
+            Text('• Set realistic deadlines for tasks'),
+            Text('• Use focus sessions to maintain productivity'),
+            SizedBox(height: 16),
+            Text('Need more help? Contact: support@adaptiveplanner.com'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it'),
+          ),
         ],
       ),
     );
@@ -130,20 +209,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // --- Function to handle the actual account deletion ---
   Future<void> _deleteUserAccount() async {
+    final buildContext = context;
     try {
       await FirebaseAuth.instance.currentUser?.delete();
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(buildContext).showSnackBar(
         const SnackBar(content: Text('Account deleted successfully.')),
       );
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(buildContext).showSnackBar(
           const SnackBar(
               content: Text(
                   'This operation is sensitive and requires recent authentication. Please log out and log back in before trying again.')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(buildContext).showSnackBar(
           SnackBar(content: Text('Error deleting account: ${e.message}')),
         );
       }
@@ -157,7 +237,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Settings',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -181,8 +262,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool value) {
               themeProvider.toggleTheme(value);
             },
-            secondary: Icon(themeProvider.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
+            secondary: Icon(themeProvider.isDarkMode
+                ? Icons.dark_mode_outlined
+                : Icons.light_mode_outlined),
             activeThumbColor: mintGreen,
+          ),
+          const Divider(height: 40),
+          _buildSectionTitle('App Information'),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('About App'),
+            subtitle: const Text('Version 1.0.0'),
+            onTap: _showAboutDialog,
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('Help & Support'),
+            onTap: _showHelpDialog,
           ),
           const Divider(height: 40),
           _buildSectionTitle('Account'),
@@ -193,7 +289,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: Icon(Icons.delete_forever, color: Colors.red.shade400),
-            title: Text('Delete Account', style: TextStyle(color: Colors.red.shade400)),
+            title: Text('Delete Account',
+                style: TextStyle(color: Colors.red.shade400)),
             onTap: _showDeleteAccountDialog,
           ),
         ],
