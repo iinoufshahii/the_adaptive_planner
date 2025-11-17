@@ -44,7 +44,14 @@ android {
 
     gradle.projectsEvaluated {
         tasks.withType<JavaCompile> {
-            options.compilerArgs.add("-Xlint:deprecation")
+            options.apply {
+                sourceCompatibility = "11"
+                targetCompatibility = "11"
+                compilerArgs.addAll(listOf(
+                    "-Xlint:deprecation",
+                    "-Xlint:-options"  // Suppress obsolete option warnings
+                ))
+            }
         }
     }
 }

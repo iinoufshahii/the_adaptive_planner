@@ -1,14 +1,22 @@
-// Clean minimal TaskListScreen (fresh) - no hidden characters
-import 'package:flutter/material.dart';
+/// Task list screen with filtering, sorting, and category selection.
+/// Displays tasks from Firestore with ability to filter by completion status and category.
+/// Uses reusable card widgets from card_widget.dart for consistent UI design.
+// ignore_for_file: deprecated_member_use
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+
+import '../dialogs/app_dialogs.dart';
 import '../models/task.dart';
-import '../services/task_service.dart';
-import '../theme/app_theme.dart';
+import '../Service/category_service.dart';
+import '../Service/task_service.dart';
+import '../Theme/App_Theme.dart';
+import '../Widgets/Responsive_widget.dart';
+import '../Widgets/Card_Widget.dart';
 import 'add_edit_task_screen.dart';
 import 'task_detail_page.dart';
 
-enum TaskCompletionFilter { all, incomplete, completed, overdue }
+enum TaskCompletionFilter { All, Incomplete, Completed, Overdue, DueToday }
 
 class TaskListScreen extends StatefulWidget {
   final TaskService taskService;
@@ -20,36 +28,44 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
-  TaskCategory? _selectedCategory;
+  String? _selectedCategory;
   late TaskCompletionFilter _filter;
+  final CategoryService _categoryService = CategoryService();
 
   @override
   void initState() {
     super.initState();
-    _filter = widget.initialFilter ?? TaskCompletionFilter.all;
+    _filter = widget.initialFilter ?? TaskCompletionFilter.All;
   }
 
   String _label(Enum e) => e.toString().split('.').last;
-  String _cat(TaskCategory c) => _label(c).toUpperCase();
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final isWeb = ResponsiveUtils.isWeb(context);
+    final titleFontSize = ResponsiveUtils.getTitleFontSize(context);
+    final iconSize = ResponsiveUtils.getIconSize(context);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(_titleForFilter(),
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+        title: Text(
+          _titleForFilter(),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: titleFontSize,
+          ),
+        ),
+        centerTitle: true,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         actions: [
           IconButton(
             icon: Icon(
               Icons.filter_list_rounded,
-              color: _selectedCategory != null ||
-                      _filter != TaskCompletionFilter.incomplete
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
+              size: iconSize,
+              color: Theme.of(context).colorScheme.primary,
             ),
             onPressed: _showFilterSheet,
           )
@@ -57,73 +73,97 @@ class _TaskListScreenState extends State<TaskListScreen> {
       ),
       body: user == null
           ? const Center(child: Text('Please log in to view tasks.'))
-          : StreamBuilder<List<Task>>(
-              stream: widget.taskService.getTasks(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                var tasks = snapshot.data ?? [];
-                if (_selectedCategory != null) {
-                  tasks = tasks
-                      .where((t) => t.category == _selectedCategory)
-                      .toList();
-                }
-                if (_filter == TaskCompletionFilter.incomplete) {
-                  tasks = tasks.where((t) => !t.isCompleted).toList();
-                } else if (_filter == TaskCompletionFilter.completed) {
-                  tasks = tasks.where((t) => t.isCompleted).toList();
-                } else if (_filter == TaskCompletionFilter.overdue) {
-                  final now = DateTime.now();
-                  tasks = tasks
-                      .where((t) => !t.isCompleted && t.deadline.isBefore(now))
-                      .toList();
-                }
-                tasks.sort((a, b) {
-                  if (a.isCompleted != b.isCompleted) {
-                    return a.isCompleted ? 1 : -1;
-                  }
-                  return a.deadline.compareTo(b.deadline);
-                });
-                if (tasks.isEmpty) {
-                  final msg = (_selectedCategory != null ||
-                          _filter != TaskCompletionFilter.all)
-                      ? 'No tasks match your current filters.'
-                      : 'No tasks yet. Tap + to add your first task.';
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.inbox_rounded,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withOpacity(0.55)),
-                        const SizedBox(height: 12),
-                        Text(
-                          msg,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 18,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.8)),
-                        )
-                      ],
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80, top: 8),
-                  itemCount: tasks.length,
-                  itemBuilder: (c, i) => _dismissible(tasks[i]),
-                );
-              },
+          : Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isWeb ? 1200 : double.infinity,
+                ),
+                child: StreamBuilder<List<Task>>(
+                  stream: widget.taskService.getTasks(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    var tasks = snapshot.data ?? [];
+                    if (_selectedCategory != null) {
+                      tasks = tasks
+                          .where((t) => t.category == _selectedCategory)
+                          .toList();
+                    }
+                    if (_filter == TaskCompletionFilter.Incomplete) {
+                      tasks = tasks.where((t) => !t.isCompleted).toList();
+                    } else if (_filter == TaskCompletionFilter.Completed) {
+                      tasks = tasks.where((t) => t.isCompleted).toList();
+                    } else if (_filter == TaskCompletionFilter.Overdue) {
+                      final now = DateTime.now();
+                      tasks = tasks
+                          .where(
+                              (t) => !t.isCompleted && t.deadline.isBefore(now))
+                          .toList();
+                    } else if (_filter == TaskCompletionFilter.DueToday) {
+                      final now = DateTime.now();
+                      final todayMidnight =
+                          DateTime(now.year, now.month, now.day);
+                      final tomorrowMidnight =
+                          todayMidnight.add(const Duration(days: 1));
+                      tasks = tasks
+                          .where((t) =>
+                              !t.isCompleted &&
+                              !t.deadline.isBefore(todayMidnight) &&
+                              t.deadline.isBefore(tomorrowMidnight))
+                          .toList();
+                    }
+                    tasks.sort((a, b) {
+                      if (a.isCompleted != b.isCompleted) {
+                        return a.isCompleted ? 1 : -1;
+                      }
+                      return a.deadline.compareTo(b.deadline);
+                    });
+                    if (tasks.isEmpty) {
+                      final msg = (_selectedCategory != null ||
+                              _filter != TaskCompletionFilter.All)
+                          ? 'No tasks match your current filters.'
+                          : 'No tasks yet. Tap + to add your first task.';
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.inbox_rounded,
+                                size: 64,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.55)),
+                            const SizedBox(height: 12),
+                            Text(
+                              msg,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.8)),
+                            )
+                          ],
+                        ),
+                      );
+                    }
+                    return RepaintBoundary(
+                      child: ListView.builder(
+                        padding: EdgeInsets.all(
+                            ResponsiveUtils.getDefaultPadding(context)
+                                .toDouble()),
+                        itemCount: tasks.length,
+                        itemBuilder: (c, i) => _dismissible(tasks[i]),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
       floatingActionButton: user == null
           ? null
@@ -138,88 +178,145 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   String _titleForFilter() {
     switch (_filter) {
-      case TaskCompletionFilter.incomplete:
+      case TaskCompletionFilter.Incomplete:
         return 'My Active Tasks';
-      case TaskCompletionFilter.completed:
+      case TaskCompletionFilter.Completed:
         return 'Completed Tasks';
-      case TaskCompletionFilter.overdue:
+      case TaskCompletionFilter.Overdue:
         return 'Overdue Tasks';
-      case TaskCompletionFilter.all:
+      case TaskCompletionFilter.DueToday:
+        return 'Tasks Due Today';
+      case TaskCompletionFilter.All:
         return 'All Tasks';
     }
   }
 
   void resetFilter() {
     setState(() {
-      _filter = TaskCompletionFilter.all;
+      _filter = TaskCompletionFilter.All;
       _selectedCategory = null;
     });
   }
 
   void _showFilterSheet() {
-    showModalBottomSheet(
+    showGeneralDialog(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Task Filters',
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface)),
-            const Divider(),
-            const Text('Completion Status',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            Wrap(
-              spacing: 8,
-              children: TaskCompletionFilter.values.map((f) {
-                final sel = _filter == f;
-                return ChoiceChip(
-                  label: Text(_label(f)),
-                  selected: sel,
-                  selectedColor:
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.8),
-                  onSelected: (v) {
-                    if (v) {
-                      setState(() => _filter = f);
-                      Navigator.pop(context);
-                    }
-                  },
-                );
-              }).toList(),
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).dialogLabel,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (ctx, anim1, anim2) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sort & Filter Tasks',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Filter by Status:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: TaskCompletionFilter.values.map((f) {
+                      final sel = _filter == f;
+                      return ChoiceChip(
+                        label: Text(_label(f)),
+                        selected: sel,
+                        selectedColor: Theme.of(context)
+                            .colorScheme
+                            .secondary
+                            .withOpacity(0.8),
+                        onSelected: (v) {
+                          if (v) {
+                            setDialogState(() => _filter = f);
+                            setState(() => _filter = f);
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Filter by Category:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  StreamBuilder<List<String>>(
+                    stream: _categoryService.getUserCategories(),
+                    builder: (context, snapshot) {
+                      final categories = snapshot.data ?? [];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: DropdownButton<String?>(
+                          value: _selectedCategory,
+                          hint: const Text('All Categories'),
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text('All Categories'),
+                            ),
+                            ...categories.map((cat) {
+                              return DropdownMenuItem(
+                                value: cat,
+                                child: Text(cat),
+                              );
+                            }),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() => _selectedCategory = value);
+                            setState(() => _selectedCategory = value);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Done'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            const Text('Category',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            DropdownButton<TaskCategory?>(
-              value: _selectedCategory,
-              isExpanded: true,
-              hint: const Text('All Categories'),
-              items: [
-                const DropdownMenuItem<TaskCategory?>(
-                    value: null, child: Text('All Categories')),
-                ...TaskCategory.values.map((c) =>
-                    DropdownMenuItem<TaskCategory>(
-                        value: c, child: Text(_cat(c)))),
-              ],
-              onChanged: (v) {
-                setState(() => _selectedCategory = v);
-                Navigator.pop(context);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
+      transitionBuilder: (ctx, anim1, anim2, child) {
+        return ScaleTransition(scale: anim1, child: child);
+      },
     );
   }
 
   Widget _dismissible(Task task) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: EdgeInsets.symmetric(
+          horizontal: 0,
+          vertical: ResponsiveUtils.getColumnSpacing(context) * 0.5,
+        ),
         child: Dismissible(
           key: ValueKey<String>(task.id ?? ''),
           direction: DismissDirection.horizontal,
@@ -232,8 +329,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Icon(
               task.isCompleted ? Icons.undo_rounded : Icons.check_rounded,
-              color: Colors.white,
-              size: 30,
+              color: const Color.fromARGB(255, 29, 222, 7),
+              size: ResponsiveUtils.getIconSize(context) * 0.9,
             ),
           ),
           secondaryBackground: Container(
@@ -243,66 +340,73 @@ class _TaskListScreenState extends State<TaskListScreen> {
             ),
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const Icon(
+            child: Icon(
               Icons.delete_forever_rounded,
               color: Colors.white,
-              size: 30,
+              size: ResponsiveUtils.getIconSize(context) * 0.9,
             ),
           ),
           confirmDismiss: (direction) async {
             if (direction == DismissDirection.startToEnd) {
               // Left swipe - toggle complete without dismissing
-              await widget.taskService
-                  .updateTask(task.copyWith(isCompleted: !task.isCompleted));
-              if (!mounted) return false;
-              ScaffoldMessenger.of(context).removeCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                duration: const Duration(seconds: 2),
-                content: Text(
-                  task.isCompleted
+              try {
+                await widget.taskService
+                    .updateTask(task.copyWith(isCompleted: !task.isCompleted));
+                if (!mounted) return false;
+                await showFloatingBottomDialog(
+                  context,
+                  message: task.isCompleted
                       ? 'Task marked incomplete.'
                       : 'Task completed! 🎉',
-                ),
-              ));
+                  type: AppMessageType.success,
+                );
+              } catch (e) {
+                if (mounted) {
+                  await showFloatingBottomDialog(
+                    context,
+                    message: 'Failed to update task: $e',
+                    type: AppMessageType.error,
+                  );
+                }
+              }
               return false; // Don't dismiss after toggle
             } else if (direction == DismissDirection.endToStart) {
               // Right swipe - show delete confirmation
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (BuildContext context) => AlertDialog(
-                  title: const Text('Delete Task?'),
-                  content: Text('Are you sure you want to delete "${task.title}"?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
+              final confirmed = await showConfirmationDialog(
+                context,
+                title: 'Delete Task?',
+                message: 'Are you sure you want to delete "${task.title}"?',
+                confirmButtonLabel: 'Delete',
+                cancelButtonLabel: 'Cancel',
+                confirmButtonColor: Colors.red,
               );
               return confirmed ?? false;
             }
             return false;
           },
-          onDismissed: (dir) {
+          onDismissed: (dir) async {
             // Only called if confirmDismiss returned true (for delete only)
             if (dir == DismissDirection.endToStart) {
               final title = task.title;
-              if (task.id != null) {
-                widget.taskService.deleteTask(task.id!);
+              try {
+                if (task.id != null) {
+                  await widget.taskService.deleteTask(task.id!);
+                }
+                if (!mounted) return;
+                await showFloatingBottomDialog(
+                  context,
+                  message: 'Task "$title" deleted.',
+                  type: AppMessageType.success,
+                );
+              } catch (e) {
+                if (mounted) {
+                  await showFloatingBottomDialog(
+                    context,
+                    message: 'Failed to delete task: $e',
+                    type: AppMessageType.error,
+                  );
+                }
               }
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).removeCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  duration: const Duration(seconds: 2),
-                  content: Text('Task "$title" deleted.'),
-                ),
-              );
             }
           },
           child: _card(task),
@@ -310,92 +414,41 @@ class _TaskListScreenState extends State<TaskListScreen> {
       );
 
   Widget _card(Task task) {
-    late final Color pColor;
-    switch (task.priority) {
-      case TaskPriority.high:
-        pColor = Colors.redAccent;
-        break;
-      case TaskPriority.medium:
-        pColor = Colors.orange;
-        break;
-      case TaskPriority.low:
-        pColor = softBlue;
-        break;
-    }
-    return Card(
-      elevation: task.isCompleted ? 1 : 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: task.isCompleted
-          ? Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5)
-          : Theme.of(context).cardTheme.color,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        leading: Checkbox(
-          value: task.isCompleted,
-          onChanged: (v) async {
-            if (v != null) {
-              await widget.taskService
-                  .updateTask(task.copyWith(isCompleted: v));
-            }
-          },
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          activeColor: Theme.of(context).colorScheme.secondary,
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: task.isCompleted
-                ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
-                : Theme.of(context).colorScheme.onSurface,
-            decoration: task.isCompleted
-                ? TextDecoration.lineThrough
-                : TextDecoration.none,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              'Due: ${DateFormat('MMM dd, hh:mm a').format(task.deadline)}',
-              style: TextStyle(
-                  fontSize: 13,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
-            ),
-            const SizedBox(height: 4),
-            Row(children: [
-              _chip(_label(task.priority), pColor.withOpacity(0.2),
-                  pColor.withOpacity(0.8)),
-              const SizedBox(width: 8),
-              _chip(
-                  _label(task.category),
-                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  Theme.of(context).colorScheme.primary.withOpacity(0.8)),
-            ])
-          ],
-        ),
-        trailing: Icon(Icons.chevron_right_rounded,
-            color: Theme.of(context).unselectedWidgetColor),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (c) =>
-                  TaskDetailPage(task: task, taskService: widget.taskService)),
-        ),
+    return TaskCard(
+      title: task.title,
+      deadline: task.deadline,
+      priority: task.priority.name,
+      energy: task.requiredEnergy.name,
+      category: task.category,
+      isCompleted: task.isCompleted,
+      subtasks: task.subtasks
+          .map((s) => {
+                'id': s.id,
+                'title': s.title,
+                'isCompleted': s.isCompleted,
+              })
+          .toList(),
+      onCheckChange: (v) async {
+        if (v != null) {
+          await widget.taskService.updateTask(task.copyWith(isCompleted: v));
+        }
+      },
+      onSubtaskCheckChange: (subtaskId, isCompleted) async {
+        final updatedSubtasks = task.subtasks
+            .map((s) =>
+                s.id == subtaskId ? s.copyWith(isCompleted: isCompleted) : s)
+            .toList();
+        await widget.taskService
+            .updateTask(task.copyWith(subtasks: updatedSubtasks));
+      },
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (c) =>
+                TaskDetailPage(task: task, taskService: widget.taskService)),
       ),
     );
   }
-
-  Widget _chip(String text, Color bg, Color fg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration:
-            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.bold, color: fg)),
-      );
 
   void _showAddSheet() {
     // Navigate to a full-screen add/edit task form instead of a bottom sheet

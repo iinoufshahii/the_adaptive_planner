@@ -1,15 +1,21 @@
-// lib/screens/profile_screen.dart
+/// User profile screen displaying user stats, mood trends, study hours, and streak.
+/// Shows charts (line/bar) for mood and study time, mood streak counter, avatar upload.
+/// Allows name editing and provides mood/study statistics with daily/weekly/monthly views.
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
-import 'dart:convert';
-import '../services/mood_service.dart';
+
+import '../dialogs/Error.dart';
 import '../models/mood_check_in.dart';
+import '../Service/mood_service.dart';
+import '../Widgets/Responsive_widget.dart';
 
 extension StringExtension on String {
   String capitalize() {
@@ -45,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   ImageProvider? _getAvatarImage(String? photoURL) {
     if (photoURL == null) return null;
-    
+
     if (photoURL.startsWith('data:image')) {
       // Handle base64 images
       try {
@@ -118,38 +124,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final displayName = user?.displayName ?? 'User';
     final email = user?.email ?? 'user@example.com';
     final theme = Theme.of(context);
+    final padding = ResponsiveUtils.getDefaultPadding(context);
+    final isWeb = ResponsiveUtils.isWeb(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile', style: theme.appBarTheme.titleTextStyle),
+        title: Text(
+          'Profile',
+          style: theme.appBarTheme.titleTextStyle?.copyWith(
+            fontSize: ResponsiveUtils.getTitleFontSize(context),
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: theme.appBarTheme.iconTheme,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildProfileHeader(context, displayName, email),
-              const SizedBox(height: 30),
-              _buildSectionTitle(context, 'Weekly Study Time (Hours)'),
-              const SizedBox(height: 16),
-              _buildWeeklyStudyChart(context),
-              const SizedBox(height: 30),
-              _buildSectionTitle(context, 'Mood History'),
-              const SizedBox(height: 16),
-              _buildMoodChart(context),
-              const SizedBox(height: 30),
-              _buildSectionTitle(context, 'Mood Streak & Monthly Heat Map'),
-              const SizedBox(height: 16),
-              _buildStreakAndHeatMap(context),
-              const SizedBox(height: 30),
-              _buildSectionTitle(context, 'Task Completion'),
-              const SizedBox(height: 16),
-              _buildTaskCompletionChart(context),
-            ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWeb ? 1200 : double.infinity,
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                  horizontal: padding, vertical: padding * 0.75),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProfileHeader(context, displayName, email),
+                  SizedBox(height: ResponsiveUtils.getSectionSpacing(context)),
+                  _buildSectionTitle(context, 'Weekly Study Time (Hours)'),
+                  SizedBox(height: padding * 0.75),
+                  _buildWeeklyStudyChart(context),
+                  SizedBox(height: ResponsiveUtils.getSectionSpacing(context)),
+                  _buildSectionTitle(context, 'Mood History'),
+                  SizedBox(height: padding * 0.75),
+                  _buildMoodChart(context),
+                  SizedBox(height: ResponsiveUtils.getSectionSpacing(context)),
+                  _buildSectionTitle(context, 'Mood Streak & Monthly Heat Map'),
+                  SizedBox(height: padding * 0.75),
+                  _buildStreakAndHeatMap(context),
+                  SizedBox(height: ResponsiveUtils.getSectionSpacing(context)),
+                  _buildSectionTitle(context, 'Task Completion'),
+                  SizedBox(height: padding * 0.75),
+                  _buildTaskCompletionChart(context),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -159,19 +180,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileHeader(BuildContext context, String name, String email) {
     final theme = Theme.of(context);
     final user = FirebaseAuth.instance.currentUser;
-    
+    final padding = ResponsiveUtils.getDefaultPadding(context);
+    final iconSize = ResponsiveUtils.getIconSize(context);
+    final avatarRadius = iconSize * 0.9;
+
     return Row(
       children: [
         Stack(
           children: [
             CircleAvatar(
-              radius: 40,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.5),
+              radius: avatarRadius,
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.5),
               backgroundImage: _getAvatarImage(user?.photoURL),
               child: user?.photoURL == null
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                      style: TextStyle(fontSize: 40, color: theme.colorScheme.onSurface),
+                      style: TextStyle(
+                        fontSize: avatarRadius * 0.9,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     )
                   : null,
             ),
@@ -181,25 +208,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: GestureDetector(
                 onTap: _uploadingAvatar ? null : _showAvatarOptions,
                 child: Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: EdgeInsets.all(padding * 0.25),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
                     shape: BoxShape.circle,
-                    border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
+                    border: Border.all(
+                      color: theme.scaffoldBackgroundColor,
+                      width: 2,
+                    ),
                   ),
                   child: _uploadingAvatar
-                      ? const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 1, color: Colors.white),
+                      ? SizedBox(
+                          width: iconSize * 0.4,
+                          height: iconSize * 0.4,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 1,
+                            color: Colors.white,
+                          ),
                         )
-                      : const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                      : Icon(
+                          Icons.camera_alt,
+                          size: iconSize * 0.4,
+                          color: Colors.white,
+                        ),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(width: 20),
+        SizedBox(width: padding),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,23 +246,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: Text(
                       name,
-                      style: theme.textTheme.headlineSmall,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontSize: ResponsiveUtils.getTitleFontSize(context),
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (_updatingName) const SizedBox(width: 8),
+                  if (_updatingName) SizedBox(width: padding * 0.5),
                   if (_updatingName)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    SizedBox(
+                      width: iconSize * 0.4,
+                      height: iconSize * 0.4,
+                      child: const CircularProgressIndicator(strokeWidth: 2),
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(
+                  height: ResponsiveUtils.getColumnSpacing(context) * 0.25),
               Text(
                 email,
-                style: theme.textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: ResponsiveUtils.getBodyFontSize(context) * 0.85,
+                ),
               ),
             ],
           ),
@@ -233,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         IconButton(
           onPressed: _showEditNameDialog,
           icon: Icon(Icons.edit_outlined,
-              color: theme.colorScheme.onSurface.withOpacity(0.7)),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
           tooltip: 'Edit Display Name',
         ),
       ],
@@ -244,60 +286,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final controller = TextEditingController(text: user.displayName ?? '');
-    String? error;
-    await showDialog(
+
+    showGeneralDialog(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Edit Display Name'),
-          content: Column(
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (ctx, anim1, anim2) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Edit Display Name',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: controller,
                 autofocus: true,
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   labelText: 'Display Name',
-                  errorText: error,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                onSubmitted: (_) => _submitNameChange(controller, (e) {
-                  setState(() {
-                    error = e;
-                  });
-                }),
+                onSubmitted: (_) {
+                  Navigator.pop(ctx);
+                  _submitNameChange(controller);
+                },
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _submitNameChange(controller);
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => _submitNameChange(controller, (e) {
-                setState(() {
-                  error = e;
-                });
-              }),
-              child: const Text('Save'),
-            ),
-          ],
-        );
+        ),
+      ),
+      transitionBuilder: (ctx, anim1, anim2, child) {
+        return ScaleTransition(scale: anim1, child: child);
       },
     );
   }
 
-  Future<void> _submitNameChange(TextEditingController controller,
-      void Function(String? err) setErr) async {
+  Future<void> _submitNameChange(TextEditingController controller) async {
     final newName = controller.text.trim();
     if (newName.isEmpty) {
-      setErr('Name cannot be empty');
+      await showFloatingBottomDialog(
+        context,
+        message: 'Name cannot be empty',
+        type: AppMessageType.warning,
+      );
       return;
     }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      setErr('Not signed in');
+      await showFloatingBottomDialog(
+        context,
+        message: 'Not signed in',
+        type: AppMessageType.error,
+      );
       return;
     }
     try {
@@ -307,14 +374,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await user.reload();
       if (!mounted) return; // widget may have been disposed while awaiting
       setState(() => _updatingName = false);
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Name updated to "$newName"')),
+      await showFloatingBottomDialog(
+        context,
+        message: 'Name updated to "$newName"',
+        type: AppMessageType.success,
       );
     } catch (e) {
       if (!mounted) return; // avoid setState after dispose
       setState(() => _updatingName = false);
-      setErr('Failed: $e');
+      await showFloatingBottomDialog(
+        context,
+        message: 'Failed to update name: $e',
+        type: AppMessageType.error,
+      );
     }
   }
 
@@ -358,7 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickAndUploadImage(ImageSource source) async {
     try {
       print('Starting image pick from $source');
-      
+
       final pickedFile = await _imagePicker.pickImage(
         source: source,
         maxWidth: 512,
@@ -394,7 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Upload file
         print('Starting file upload to Firebase Storage...');
         final uploadTask = storageRef.putFile(File(pickedFile.path));
-        
+
         await uploadTask;
         print('File uploaded to Firebase Storage successfully');
 
@@ -409,26 +481,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (mounted) {
           setState(() => _uploadingAvatar = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Avatar updated successfully via Firebase Storage!'),
-              backgroundColor: Colors.green,
-            ),
+          await showFloatingBottomDialog(
+            context,
+            message: 'Avatar updated successfully via Firebase Storage!',
+            type: AppMessageType.success,
           );
         }
       } catch (storageError) {
         print('Firebase Storage error: $storageError');
         print('Falling back to base64 storage in Firestore...');
-        
+
         // Fallback: Convert to base64 and store in Firestore
         final bytes = await File(pickedFile.path).readAsBytes();
         final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-        
+
         // Store in Firestore user document
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'avatar': base64String,
           'avatarUpdated': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
@@ -436,17 +504,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Update user profile with a placeholder
         await user.updatePhotoURL(base64String);
         await user.reload();
-        
+
         print('Avatar stored in Firestore as base64');
-        
+
         if (mounted) {
           setState(() => _uploadingAvatar = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Avatar saved locally! (Enable Firebase Storage for cloud sync)'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
-            ),
+          await showFloatingBottomDialog(
+            context,
+            message:
+                'Avatar saved locally! (Enable Firebase Storage for cloud sync)',
+            type: AppMessageType.warning,
           );
         }
       }
@@ -454,12 +521,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('Avatar upload error: $e');
       if (mounted) {
         setState(() => _uploadingAvatar = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to upload avatar: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
+        await showFloatingBottomDialog(
+          context,
+          message: 'Failed to upload avatar: $e',
+          type: AppMessageType.error,
         );
       }
     }
@@ -488,15 +553,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (mounted) {
         setState(() => _uploadingAvatar = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avatar removed successfully!')),
+        await showFloatingBottomDialog(
+          context,
+          message: 'Avatar removed successfully!',
+          type: AppMessageType.success,
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _uploadingAvatar = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to remove avatar: $e')),
+        await showFloatingBottomDialog(
+          context,
+          message: 'Failed to remove avatar: $e',
+          type: AppMessageType.error,
         );
       }
     }
@@ -505,7 +574,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleLarge,
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontSize: ResponsiveUtils.getTitleFontSize(context),
+            fontWeight: FontWeight.w600,
+          ),
     );
   }
 
@@ -569,16 +641,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
         final theme = Theme.of(context);
         final lineColor = theme.colorScheme.primary;
+        final chartHeight = ResponsiveUtils.isWeb(context)
+            ? 320.0
+            : (ResponsiveUtils.isTablet(context) ? 280.0 : 250.0);
+        final padding = ResponsiveUtils.getCardPadding(context);
+        final borderRadius = ResponsiveUtils.getCardBorderRadius(context);
+        final smallFontSize = ResponsiveUtils.getSmallFontSize(context);
 
         return SizedBox(
-          height: 250,
+          height: chartHeight,
           width: double.infinity,
           child: Card(
             elevation: 3,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(borderRadius.toDouble())),
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: EdgeInsets.all(padding.toDouble()),
               child: LineChart(
                 LineChartData(
                   minX: 0,
@@ -586,15 +664,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   minY: 0,
                   maxY: maxY.toDouble(),
                   gridData: FlGridData(
-                      show: true,
-                      horizontalInterval:
-                          (maxY / 4).clamp(0.5, double.infinity)),
+                    show: true,
+                    horizontalInterval: (maxY / 4).clamp(0.5, double.infinity),
+                  ),
                   borderData: FlBorderData(show: false),
                   titlesData: FlTitlesData(
                     topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                     rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
@@ -610,7 +690,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               labels[idx],
                               style: theme.textTheme.labelSmall?.copyWith(
                                 fontWeight: FontWeight.w500,
-                                fontSize: 12,
+                                fontSize: smallFontSize * 0.85,
                               ),
                             ),
                           );
@@ -627,7 +707,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Text(
                             '${value.toStringAsFixed(1)}h',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 10,
+                              fontSize: smallFontSize * 0.75,
                               fontWeight: FontWeight.w500,
                             ),
                             textAlign: TextAlign.center,
@@ -645,13 +725,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       dotData: FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: lineColor.withOpacity(0.18),
+                        color: lineColor.withValues(alpha: 0.18),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            lineColor.withOpacity(0.25),
-                            lineColor.withOpacity(0.02)
+                            lineColor.withValues(alpha: 0.25),
+                            lineColor.withValues(alpha: 0.02)
                           ],
                         ),
                       ),
@@ -671,13 +751,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Text('Sign in to view mood analytics');
 
+    final padding = ResponsiveUtils.getCardPadding(context);
+    final borderRadius = ResponsiveUtils.getCardBorderRadius(context);
+    final titleFontSize = ResponsiveUtils.getTitleFontSize(context);
+
     return SizedBox(
       width: double.infinity,
       child: Card(
         elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(borderRadius.toDouble())),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(padding.toDouble()),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -686,18 +771,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: Text(
                       'Mood Analytics',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: titleFontSize * 0.95,
+                          ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _buildPeriodSelector(),
+                  SizedBox(
+                      width: ResponsiveUtils.getColumnSpacing(context) * 0.5),
+                  _buildPeriodSelector(context),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: ResponsiveUtils.getColumnSpacing(context)),
               _buildChartForPeriod(context, user.uid),
             ],
           ),
@@ -706,21 +792,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildPeriodSelector() {
+  Widget _buildPeriodSelector(BuildContext context) {
+    final smallFontSize = ResponsiveUtils.getSmallFontSize(context);
+    final iconSize = ResponsiveUtils.getIconSize(context) * 0.4;
+
     return SegmentedButton<String>(
       segments: [
         ButtonSegment(
-            value: 'week',
-            label: Text('Week', style: TextStyle(fontSize: 12)),
-            icon: Icon(Icons.view_week, size: 14)),
+          value: 'week',
+          label: Text('Week', style: TextStyle(fontSize: smallFontSize * 0.75)),
+          icon: Icon(Icons.view_week, size: iconSize),
+        ),
         ButtonSegment(
-            value: 'month',
-            label: Text('Month', style: TextStyle(fontSize: 12)),
-            icon: Icon(Icons.calendar_view_month, size: 14)),
+          value: 'month',
+          label:
+              Text('Month', style: TextStyle(fontSize: smallFontSize * 0.75)),
+          icon: Icon(Icons.calendar_view_month, size: iconSize),
+        ),
         ButtonSegment(
-            value: 'year',
-            label: Text('Year', style: TextStyle(fontSize: 12)),
-            icon: Icon(Icons.calendar_today, size: 14)),
+          value: 'year',
+          label: Text('Year', style: TextStyle(fontSize: smallFontSize * 0.75)),
+          icon: Icon(Icons.calendar_today, size: iconSize),
+        ),
       ],
       selected: {_chartPeriod},
       onSelectionChanged: (Set<String> selection) {
@@ -732,8 +825,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
         selectedForegroundColor:
             Theme.of(context).colorScheme.onPrimaryContainer,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        minimumSize: const Size(50, 32),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getColumnSpacing(context) * 0.5,
+          vertical: ResponsiveUtils.getColumnSpacing(context) * 0.25,
+        ),
+        minimumSize: Size(50, ResponsiveUtils.getButtonHeight(context) * 0.5),
       ),
     );
   }
@@ -905,8 +1001,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             BarChartRodData(
               toY: checkInCount.toDouble(),
               color: checkInCount > 0
-                  ? primary.withOpacity(0.7)
-                  : Colors.grey.withOpacity(0.3),
+                  ? primary.withValues(alpha: 0.7)
+                  : Colors.grey.withValues(alpha: 0.3),
               width: _chartPeriod == 'year'
                   ? 18
                   : (_chartPeriod == 'month' ? 5 : 10),
@@ -920,15 +1016,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (checkInCount > maxCheckIns) maxCheckIns = checkInCount.toDouble();
     }
 
+    final chartHeight = ResponsiveUtils.isWeb(context)
+        ? 480.0
+        : (ResponsiveUtils.isTablet(context) ? 420.0 : 380.0);
+    final padding = ResponsiveUtils.getColumnSpacing(context);
+
     return Container(
-      height: 450, // Increased height for better spacing
+      height: chartHeight,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: EdgeInsets.symmetric(horizontal: padding * 0.25),
       child: Column(
         children: [
           // Summary stats row with last check-in emoji
           _buildStatsRow(context, docs, moodData, checkInCounts),
-          const SizedBox(height: 16),
+          SizedBox(height: padding),
 
           // Mood trend line chart
           Expanded(
@@ -948,11 +1049,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primaryContainer
-                              .withOpacity(0.7),
+                              .withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color:
-                                  theme.colorScheme.primary.withOpacity(0.3)),
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -992,18 +1093,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? 2
                               : (_chartPeriod == 'month' ? 5 : 1),
                           getDrawingHorizontalLine: (value) => FlLine(
-                            color: Colors.grey.withOpacity(0.2),
+                            color: Colors.grey.withValues(alpha: 0.2),
                             strokeWidth: 1,
                           ),
                           getDrawingVerticalLine: (value) => FlLine(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             strokeWidth: 1,
                           ),
                         ),
                         borderData: FlBorderData(
                           show: true,
-                          border:
-                              Border.all(color: Colors.grey.withOpacity(0.3)),
+                          border: Border.all(
+                              color: Colors.grey.withValues(alpha: 0.3)),
                         ),
                         titlesData: FlTitlesData(
                           topTitles: const AxisTitles(
@@ -1113,8 +1214,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
                                       colors: [
-                                        primary.withOpacity(0.3),
-                                        primary.withOpacity(0.05),
+                                        primary.withValues(alpha: 0.3),
+                                        primary.withValues(alpha: 0.05),
                                       ],
                                     ),
                                   ),
@@ -1155,14 +1256,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? (maxCheckIns / 3).ceil().toDouble()
                               : 1,
                           getDrawingHorizontalLine: (value) => FlLine(
-                            color: Colors.grey.withOpacity(0.2),
+                            color: Colors.grey.withValues(alpha: 0.2),
                             strokeWidth: 1,
                           ),
                         ),
                         borderData: FlBorderData(
                           show: true,
-                          border:
-                              Border.all(color: Colors.grey.withOpacity(0.3)),
+                          border: Border.all(
+                              color: Colors.grey.withValues(alpha: 0.3)),
                         ),
                         titlesData: FlTitlesData(
                           topTitles: const AxisTitles(
@@ -1284,9 +1385,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       height: 85, // Fixed height for consistent sizing
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+        border:
+            Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1375,7 +1477,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final i = moodIndex(m);
       final base = theme.colorScheme.primary;
       final steps = [0.15, 0.30, 0.45, 0.60, 0.75, 0.9];
-      return base.withOpacity(steps[i]);
+      return base.withValues(alpha: steps[i]);
     }
 
     return Container(
@@ -1504,13 +1606,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Color blendedColor(List<String> moodsList) {
                     if (moodsList.isEmpty) {
                       return theme.colorScheme.surfaceContainerHighest
-                          .withOpacity(0.25);
+                          .withValues(alpha: 0.25);
                     }
                     final avg = avgMoodValue(moodsList); // 1..6
                     final ratio = (avg - 1) / 5; // 0..1
                     final happy = theme.colorScheme.primary;
-                    final sad = theme.colorScheme.error.withOpacity(0.85);
-                    return Color.lerp(sad, happy, ratio)!.withOpacity(0.8);
+                    final sad = theme.colorScheme.error.withValues(alpha: 0.85);
+                    final lerpedColor = Color.lerp(sad, happy, ratio);
+                    return (lerpedColor ?? happy).withValues(alpha: 0.8);
                   }
 
                   return Column(
@@ -1538,7 +1641,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       color: theme.colorScheme.onSurface
-                                          .withOpacity(0.7),
+                                          .withValues(alpha: 0.7),
                                     ),
                                   ),
                                 ),
@@ -1567,9 +1670,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         child: Container(
                                           margin: const EdgeInsets.all(1.5),
                                           decoration: BoxDecoration(
-                                            color: theme
-                                                .colorScheme.surfaceContainerHighest
-                                                .withOpacity(0.2),
+                                            color: theme.colorScheme
+                                                .surfaceContainerHighest
+                                                .withValues(alpha: 0.2),
                                             borderRadius:
                                                 BorderRadius.circular(4),
                                           ),
@@ -1593,7 +1696,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 ? Border.all(
                                                     color: theme
                                                         .colorScheme.outline
-                                                        .withOpacity(0.3),
+                                                        .withValues(alpha: 0.3),
                                                     width: 0.5,
                                                   )
                                                 : null,
@@ -1606,9 +1709,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 color: moodsList.isEmpty
                                                     ? theme
                                                         .colorScheme.onSurface
-                                                        .withOpacity(0.6)
-                                                    : Colors.white
-                                                        .withOpacity(0.95),
+                                                        .withValues(alpha: 0.6)
+                                                    : Colors.white.withValues(
+                                                        alpha: 0.95),
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
@@ -1638,7 +1741,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text('Less',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.6),
+                                      .withValues(alpha: 0.6),
                                   fontSize: 10,
                                 )),
                             const SizedBox(width: 6),
@@ -1651,11 +1754,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           horizontal: 1.5),
                                       decoration: BoxDecoration(
                                         color: theme.colorScheme.primary
-                                            .withOpacity(0.2 + (i * 0.16)),
+                                            .withValues(
+                                                alpha: 0.2 + (i * 0.16)),
                                         borderRadius: BorderRadius.circular(3),
                                         border: Border.all(
                                           color: theme.colorScheme.outline
-                                              .withOpacity(0.2),
+                                              .withValues(alpha: 0.2),
                                           width: 0.5,
                                         ),
                                       ),
@@ -1664,7 +1768,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text('More',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.6),
+                                      .withValues(alpha: 0.6),
                                   fontSize: 10,
                                 )),
                           ],
@@ -1684,10 +1788,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: moodColor(m).withOpacity(0.25),
+                                  color: moodColor(m).withValues(alpha: 0.25),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                      color: moodColor(m).withOpacity(0.4),
+                                      color:
+                                          moodColor(m).withValues(alpha: 0.4),
                                       width: 0.8),
                                 ),
                                 child: Row(
@@ -1759,8 +1864,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Keep translucency adaptive so it doesn't overpower the completed segment.
         final secondaryBase = theme.colorScheme.secondary;
         final remainingColor = theme.brightness == Brightness.dark
-            ? secondaryBase.withOpacity(0.32)
-            : secondaryBase.withOpacity(0.26);
+            ? secondaryBase.withValues(alpha: 0.32)
+            : secondaryBase.withValues(alpha: 0.26);
         final completedPctStr =
             total == 0 ? '0%' : '${completionPct.toStringAsFixed(0)}%';
         final remainingPctStr =
@@ -1777,8 +1882,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  theme.colorScheme.surfaceContainerHighest.withOpacity(0.18),
-                  theme.colorScheme.primary.withOpacity(0.08),
+                  theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.18),
+                  theme.colorScheme.primary.withValues(alpha: 0.08),
                 ],
               ),
             ),
@@ -1838,7 +1944,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 'Done',
                                 style: theme.textTheme.labelMedium?.copyWith(
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.7),
+                                      .withValues(alpha: 0.7),
                                 ),
                               )
                             ],
@@ -1880,7 +1986,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: LinearProgressIndicator(
                               minHeight: 10,
                               value: total == 0 ? 0 : completed / total,
-                              backgroundColor: remainingColor.withOpacity(0.3),
+                              backgroundColor:
+                                  remainingColor.withValues(alpha: 0.3),
                               valueColor:
                                   AlwaysStoppedAnimation(completedColor),
                             ),
@@ -1893,7 +2000,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 '$completed of $total completed',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.7),
+                                      .withValues(alpha: 0.7),
                                 ),
                               ),
                               if (total > 0)
@@ -1930,9 +2037,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final labelStyle = (emphasize
             ? textStyleBase?.copyWith(fontWeight: FontWeight.w600)
             : textStyleBase)
-        ?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.78));
+        ?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.78));
     final valueStyle = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurface.withOpacity(0.6),
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
       letterSpacing: 0.2,
     );
     return Row(
@@ -1945,7 +2052,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.35),
+                color: color.withValues(alpha: 0.35),
                 blurRadius: 4,
                 offset: const Offset(0, 1),
               ),

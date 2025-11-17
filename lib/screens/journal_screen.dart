@@ -1,10 +1,16 @@
-// lib/screens/journal_screen.dart
+/// Journal screen for viewing, creating, editing, and deleting journal entries.
+/// Uses StreamBuilder to listen for real-time journal entries from Firestore.
+/// Displays entries in a grid/list with reading view, edit capability, and delete confirmation.
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:ui';
+
+import '../dialogs/app_dialogs.dart';
 import '../models/journal_entry.dart';
-import '../services/journal_service.dart';
+import '../Service/journal_service.dart';
+import '../Widgets/Responsive_widget.dart';
+import '../Widgets/Card_Widget.dart';
 import 'edit_journal_screen.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -16,6 +22,157 @@ class JournalScreen extends StatefulWidget {
 
 class _JournalScreenState extends State<JournalScreen> {
   final JournalService _journalService = JournalService();
+  String _sortBy = 'date'; // 'date' or 'mood'
+  String? _selectedMood; // 'positive', 'negative', 'neutral', or null for all
+  bool _sortAscending = false; // false = newest first, true = oldest first
+
+  void _showSortDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Sort Journal Entries'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Sort By:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    ListTile(
+                      title: const Text('Date'),
+                      leading: Radio<String>(
+                        value: 'date',
+                        // ignore: deprecated_member_use
+                        groupValue: _sortBy,
+                        // ignore: deprecated_member_use
+                        onChanged: (value) {
+                          setState(() => _sortBy = value!);
+                          this.setState(() {});
+                        },
+                      ),
+                    ),
+                    ListTile(
+                      title: const Text('Mood'),
+                      leading: Radio<String>(
+                        value: 'mood',
+                        // ignore: deprecated_member_use
+                        groupValue: _sortBy,
+                        // ignore: deprecated_member_use
+                        onChanged: (value) {
+                          setState(() => _sortBy = value!);
+                          this.setState(() {});
+                        },
+                      ),
+                    ),
+                    if (_sortBy == 'mood') ...[
+                      const SizedBox(height: 16),
+                      const Divider()
+                    ],
+                    if (_sortBy == 'mood') ...[const SizedBox(height: 8)],
+                    if (_sortBy == 'mood')
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Filter by Mood:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          DropdownButton<String?>(
+                            value: _selectedMood,
+                            isExpanded: true,
+                            hint: const Text('All Moods'),
+                            items: const [
+                              DropdownMenuItem(
+                                  value: null, child: Text('All Moods')),
+                              DropdownMenuItem(
+                                  value: 'positive', child: Text('Positive')),
+                              DropdownMenuItem(
+                                  value: 'negative', child: Text('Negative')),
+                              DropdownMenuItem(
+                                  value: 'neutral', child: Text('Neutral')),
+                            ],
+                            onChanged: (value) {
+                              setState(() => _selectedMood = value);
+                              this.setState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    if (_sortBy == 'date') ...[
+                      const SizedBox(height: 16),
+                      const Divider()
+                    ],
+                    if (_sortBy == 'date') ...[const SizedBox(height: 8)],
+                    if (_sortBy == 'date')
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Order:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          ListTile(
+                            title: const Text('Newest First'),
+                            leading: Radio<bool>(
+                              value: false,
+                              // ignore: deprecated_member_use
+                              groupValue: _sortAscending,
+                              // ignore: deprecated_member_use
+                              onChanged: (value) {
+                                setState(() => _sortAscending = value!);
+                                this.setState(() {});
+                              },
+                            ),
+                          ),
+                          ListTile(
+                            title: const Text('Oldest First'),
+                            leading: Radio<bool>(
+                              value: true,
+                              // ignore: deprecated_member_use
+                              groupValue: _sortAscending,
+                              // ignore: deprecated_member_use
+                              onChanged: (value) {
+                                setState(() => _sortAscending = value!);
+                                this.setState(() {});
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<JournalEntry> _sortEntries(List<JournalEntry> entries) {
+    List<JournalEntry> sorted = List.from(entries);
+
+    if (_sortBy == 'date') {
+      sorted.sort((a, b) =>
+          _sortAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
+    } else if (_sortBy == 'mood') {
+      if (_selectedMood != null) {
+        sorted = sorted
+            .where((e) => e.mood?.toLowerCase() == _selectedMood)
+            .toList();
+      }
+      // Secondary sort by date (newest first) when sorted by mood
+      sorted.sort((a, b) => b.date.compareTo(a.date));
+    }
+
+    return sorted;
+  }
 
   void _navigateToNewEntry() {
     Navigator.of(context).push(
@@ -34,42 +191,71 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   void _navigateToEditScreen(JournalEntry entry) {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (context) => EditJournalEntryScreen(entry: entry),
       ),
-    );
+    )
+        .then((_) {
+      // Refresh when returning from edit - the StreamBuilder will automatically
+      // detect the changes in Firestore and update the UI
+      setState(() {});
+    });
   }
 
-  Future<bool?> _showDeleteConfirmationDialog() {
-    return showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Entry'),
-          content: const Text(
-              'Are you sure you want to permanently delete this entry?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-            TextButton(
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-          ],
-        );
+  Future<bool?> _showDeleteConfirmationDialog(JournalEntry entry) async {
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'Delete Entry',
+      message: 'Are you sure you want to permanently delete this entry?',
+      confirmButtonColor: Colors.red,
+      onConfirm: () async {
+        try {
+          if (entry.id != null) {
+            await _journalService.deleteJournalEntry(entry.id!);
+            if (mounted) {
+              await showAutoDismissDialog(
+                context,
+                title: 'Success',
+                message: 'Journal entry deleted',
+                type: AppMessageType.success,
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            await showAutoDismissDialog(
+              context,
+              title: 'Error',
+              message: 'Failed to delete entry: $e',
+              type: AppMessageType.error,
+            );
+          }
+        }
       },
     );
+    return confirmed;
   }
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = ResponsiveUtils.getIconSize(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Journal'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.filter_list_rounded,
+              size: iconSize,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            onPressed: _showSortDialog,
+            tooltip: 'Sort entries',
+          ),
+        ],
       ),
       body: StreamBuilder<List<JournalEntry>>(
         stream: _journalService.getJournalEntries(),
@@ -94,8 +280,8 @@ class _JournalScreenState extends State<JournalScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.description, size: 80,
-                      color: Colors.grey.shade300),
+                  Icon(Icons.description,
+                      size: 80, color: Colors.grey.shade300),
                   const SizedBox(height: 16),
                   const Text(
                     'No journal entries yet',
@@ -111,27 +297,40 @@ class _JournalScreenState extends State<JournalScreen> {
             );
           }
 
-          final entries = snapshot.data!;
+          var entries = snapshot.data!;
+          entries = _sortEntries(entries);
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: entries.length,
-            itemBuilder: (context, index) {
-              return _buildJournalEntryCard(entries[index]);
-            },
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth:
+                    ResponsiveUtils.isWeb(context) ? 1000 : double.infinity,
+              ),
+              child: ListView.builder(
+                padding: EdgeInsets.all(
+                    ResponsiveUtils.getDefaultPadding(context).toDouble()),
+                itemCount: entries.length,
+                itemBuilder: (context, index) {
+                  return _buildJournalEntryCard(entries[index]);
+                },
+              ),
+            ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         onPressed: _navigateToNewEntry,
         tooltip: 'New Journal Entry',
-        child: const Icon(Icons.add),
+        child: Icon(Icons.add_rounded,
+            color: Theme.of(context).colorScheme.onSecondary, size: 30),
       ),
     );
   }
 
-  // --- HELPER METHODS FOR MOOD COLORS ---
-  Color _getMoodColor(String? mood) {
+  // --- HELPER METHODS FOR MOOD COLORS (STATIC) ---
+  /// Returns color for mood type (positive=green, negative=red, neutral=blue)
+  static Color _getMoodColor(String? mood) {
     switch (mood?.toLowerCase()) {
       case 'positive':
         return Colors.green;
@@ -144,7 +343,8 @@ class _JournalScreenState extends State<JournalScreen> {
     }
   }
 
-  LinearGradient _getMoodGradient(String? mood) {
+  /// Returns gradient for mood type with appropriate color scheme
+  static LinearGradient _getMoodGradient(String? mood) {
     switch (mood?.toLowerCase()) {
       case 'positive':
         return LinearGradient(
@@ -167,7 +367,6 @@ class _JournalScreenState extends State<JournalScreen> {
 
   // --- HELPER WIDGET FOR THE JOURNAL CARD ---
   Widget _buildJournalEntryCard(JournalEntry entry) {
-
     return Dismissible(
       key: ValueKey(entry.id),
       background: Container(
@@ -181,7 +380,9 @@ class _JournalScreenState extends State<JournalScreen> {
           children: [
             Icon(Icons.edit, color: Colors.white),
             SizedBox(width: 8),
-            Text('Edit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Edit',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -195,7 +396,9 @@ class _JournalScreenState extends State<JournalScreen> {
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Delete',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
             SizedBox(width: 8),
             Icon(Icons.delete, color: Colors.white),
           ],
@@ -208,259 +411,22 @@ class _JournalScreenState extends State<JournalScreen> {
           return false;
         } else if (direction == DismissDirection.endToStart) {
           // Delete
-          final confirmed = await _showDeleteConfirmationDialog();
-          if (confirmed == true && entry.id != null) {
-            await _journalService.deleteJournalEntry(entry.id!);
-          }
-          return confirmed;
+          final confirmed = await _showDeleteConfirmationDialog(entry);
+          return confirmed ?? false;
         }
         return false;
       },
-      child: GestureDetector(
+      child: JournalCard(
+        date: entry.date,
+        mood: entry.mood,
+        aiFeedback: entry.aiFeedback,
+        actionableSteps: entry.actionableSteps,
         onTap: () => _navigateToReadingView(entry),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Header with date and mood
-                  Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                DateFormat('EEEE, d MMMM yyyy').format(entry.date),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                DateFormat('h:mm a').format(entry.date),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (entry.mood != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: _getMoodGradient(entry.mood),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _getMoodColor(entry.mood).withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              entry.mood!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          )
-                        else
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.grey.shade400),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Expandable content
-                  Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      title: const Text(
-                        'AI Suggestions',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-                      collapsedIconColor: Colors.grey.shade600,
-                      iconColor: Colors.grey.shade800,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // AI Feedback
-                              if (entry.aiFeedback != null && entry.aiFeedback!.isNotEmpty)
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Suggestion',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.primary,
-                                        fontSize: 12,
-                                        letterSpacing: 0.2,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: BackdropFilter(
-                                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: Colors.blue.withValues(alpha: 0.2),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            entry.aiFeedback!,
-                                            style: TextStyle(
-                                              color: Colors.grey.shade800,
-                                              fontSize: 12,
-                                              height: 1.5,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                  ],
-                                ),
-                              // Actionable Steps
-                              if (entry.actionableSteps != null && entry.actionableSteps!.isNotEmpty)
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Actionable Steps',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.primary,
-                                        fontSize: 12,
-                                        letterSpacing: 0.2,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ...entry.actionableSteps!.asMap().entries.map((e) {
-                                      int idx = e.key;
-                                      String step = e.value;
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 8),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              width: 20,
-                                              height: 20,
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  colors: [
-                                                    Colors.green.shade400,
-                                                    Colors.green.shade600,
-                                                  ],
-                                                ),
-                                                borderRadius: BorderRadius.circular(10),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.green.shade400.withValues(alpha: 0.3),
-                                                    blurRadius: 6,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Center(
-                                                child: Text(
-                                                  '${idx + 1}',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 10,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Text(
-                                                step,
-                                                style: TextStyle(
-                                                  color: Colors.grey.shade700,
-                                                  fontSize: 12,
-                                                  height: 1.4,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }),
-                                  ],
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
+
+  // --- HELPER METHODS FOR MOOD COLORS (STATIC) ---
 }
 
 // --- JOURNAL READING VIEW ---
@@ -475,11 +441,13 @@ class JournalReadingView extends StatefulWidget {
 
 class _JournalReadingViewState extends State<JournalReadingView> {
   void _navigateToEditScreen(JournalEntry entry) {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (context) => EditJournalEntryScreen(entry: entry),
       ),
-    ).then((_) {
+    )
+        .then((_) {
       // Refresh when returning from edit
       setState(() {});
     });
@@ -493,10 +461,13 @@ class _JournalReadingViewState extends State<JournalReadingView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Container(
-          margin: const EdgeInsets.all(8),
+          margin: EdgeInsets.all(ResponsiveUtils.getIconSize(context) * 0.15),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900.withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(
+                ResponsiveUtils.getCardBorderRadius(context) * 0.7),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
@@ -505,16 +476,23 @@ class _JournalReadingViewState extends State<JournalReadingView> {
             ],
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            icon: Icon(Icons.arrow_back,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black87,
+                size: ResponsiveUtils.getIconSize(context) * 0.6),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         actions: [
           Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(ResponsiveUtils.getIconSize(context) * 0.15),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(12),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade900.withValues(alpha: 0.9)
+                  : Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(
+                  ResponsiveUtils.getCardBorderRadius(context) * 0.7),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -523,7 +501,11 @@ class _JournalReadingViewState extends State<JournalReadingView> {
               ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.edit, color: Colors.black87),
+              icon: Icon(Icons.edit,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                  size: ResponsiveUtils.getIconSize(context) * 0.6),
               onPressed: () => _navigateToEditScreen(widget.entry),
               tooltip: 'Edit Entry',
             ),
@@ -535,352 +517,385 @@ class _JournalReadingViewState extends State<JournalReadingView> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue.shade50,
-              Colors.white,
-            ],
+            colors: Theme.of(context).brightness == Brightness.dark
+                ? [
+                    Colors.grey.shade900,
+                    Colors.grey.shade800,
+                  ]
+                : [
+                    Colors.blue.shade50,
+                    Colors.white,
+                  ],
           ),
         ),
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 100, 20, 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Date and Mood Header Card
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('EEEE, d MMMM yyyy').format(widget.entry.date),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.3,
+            padding: EdgeInsets.fromLTRB(
+              ResponsiveUtils.getDefaultPadding(context).toDouble(),
+              ResponsiveUtils.getTitleFontSize(context) + 80,
+              ResponsiveUtils.getDefaultPadding(context).toDouble(),
+              ResponsiveUtils.getDefaultPadding(context).toDouble() * 1.5,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth:
+                      ResponsiveUtils.isWeb(context) ? 900 : double.infinity,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date and Mood Header Card
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: EdgeInsets.all(
+                              ResponsiveUtils.getDefaultPadding(context)
+                                  .toDouble()),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Colors.grey.shade800.withValues(alpha: 0.8)
+                                : Colors.white.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(
+                                ResponsiveUtils.getCardBorderRadius(context)
+                                    .toDouble()),
+                            border: Border.all(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : Colors.white.withValues(alpha: 0.6),
+                              width: 2,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                DateFormat('h:mm a').format(widget.entry.date),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 24,
+                                offset: const Offset(0, 12),
                               ),
-                              if (widget.entry.mood != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: _getMoodGradient(widget.entry.mood),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: _getMoodColor(widget.entry.mood)
-                                            .withValues(alpha: 0.3),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    widget.entry.mood!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Main Content
-                Text(
-                  'Your Entry',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.grey.shade200.withValues(alpha: 0.5),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        widget.entry.text,
-                        style: TextStyle(
-                          fontSize: 16,
-                          height: 1.8,
-                          color: Colors.grey.shade800,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // AI Insights Section
-                if (widget.entry.aiFeedback != null &&
-                    widget.entry.aiFeedback!.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI Suggestion',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.blue.withValues(alpha: 0.1),
-                                  Colors.blue.withValues(alpha: 0.05),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.blue.withValues(alpha: 0.3),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.blue.withValues(alpha: 0.1),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                DateFormat('EEEE, d MMMM yyyy')
+                                    .format(widget.entry.date),
+                                style: TextStyle(
+                                  fontSize:
+                                      ResponsiveUtils.getTitleFontSize(context),
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
+                              ),
+                              SizedBox(
+                                  height: ResponsiveUtils.getColumnSpacing(
+                                          context) *
+                                      0.5),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    DateFormat('h:mm a')
+                                        .format(widget.entry.date),
+                                    style: TextStyle(
+                                      fontSize: ResponsiveUtils.getBodyFontSize(
+                                              context) *
+                                          0.9,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (widget.entry.mood != null)
                                     Container(
-                                      width: 40,
-                                      height: 40,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal:
+                                            ResponsiveUtils.getDefaultPadding(
+                                                    context) *
+                                                0.7,
+                                        vertical:
+                                            ResponsiveUtils.getColumnSpacing(
+                                                    context) *
+                                                0.4,
+                                      ),
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.blue.shade400,
-                                            Colors.blue.shade600,
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
+                                        gradient: _JournalScreenState
+                                            ._getMoodGradient(
+                                                widget.entry.mood),
+                                        borderRadius: BorderRadius.circular(
+                                            ResponsiveUtils.getCardBorderRadius(
+                                                    context) *
+                                                0.75),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.blue.shade400
+                                            color: _JournalScreenState
+                                                    ._getMoodColor(
+                                                        widget.entry.mood)
                                                 .withValues(alpha: 0.3),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 6),
                                           ),
                                         ],
                                       ),
-                                      child: const Icon(
-                                        Icons.lightbulb,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
                                       child: Text(
-                                        'Insight',
+                                        widget.entry.mood!,
                                         style: TextStyle(
-                                          fontSize: 16,
+                                          color: Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.blue.shade700,
+                                          fontSize:
+                                              ResponsiveUtils.getBodyFontSize(
+                                                      context) *
+                                                  0.85,
                                           letterSpacing: 0.2,
                                         ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  widget.entry.aiFeedback!,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    height: 1.7,
-                                    color: Colors.grey.shade800,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.1,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                        height:
+                            ResponsiveUtils.getColumnSpacing(context) * 1.5),
+
+                    // Main Content
+                    Text(
+                      'Your Entry',
+                      style: TextStyle(
+                        fontSize:
+                            ResponsiveUtils.getTitleFontSize(context) * 0.7,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.grey.shade800,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    SizedBox(
+                        height:
+                            ResponsiveUtils.getColumnSpacing(context) * 0.75),
+
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                          ResponsiveUtils.getCardBorderRadius(context)
+                              .toDouble()),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: Container(
+                          padding: EdgeInsets.all(
+                              ResponsiveUtils.getDefaultPadding(context)
+                                  .toDouble()),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Colors.grey.shade800.withValues(alpha: 0.8)
+                                : Colors.grey.shade50.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(
+                                ResponsiveUtils.getCardBorderRadius(context)
+                                    .toDouble()),
+                            border: Border.all(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade700.withValues(alpha: 0.5)
+                                  : Colors.grey.shade200.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            widget.entry.text,
+                            style: TextStyle(
+                              fontSize:
+                                  ResponsiveUtils.getBodyFontSize(context) *
+                                      0.95,
+                              height: 1.8,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.grey.shade800,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                    ),
+                    SizedBox(
+                        height:
+                            ResponsiveUtils.getColumnSpacing(context) * 1.5),
 
-                // Actionable Steps Section
-                if (widget.entry.actionableSteps != null &&
-                    widget.entry.actionableSteps!.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Actionable Steps',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ...widget.entry.actionableSteps!.asMap().entries.map((e) {
-                        int idx = e.key;
-                        String step = e.value;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
+                    // AI Insights Section
+                    if (widget.entry.aiFeedback != null &&
+                        widget.entry.aiFeedback!.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI Suggestion',
+                            style: TextStyle(
+                              fontSize:
+                                  ResponsiveUtils.getTitleFontSize(context) *
+                                      0.7,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.grey.shade800,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          SizedBox(
+                              height:
+                                  ResponsiveUtils.getColumnSpacing(context) *
+                                      0.75),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                                ResponsiveUtils.getCardBorderRadius(context)
+                                    .toDouble()),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                               child: Container(
-                                padding: const EdgeInsets.all(18),
+                                padding: EdgeInsets.all(
+                                    ResponsiveUtils.getDefaultPadding(context)
+                                        .toDouble()),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [
-                                      Colors.green.withValues(alpha: 0.08),
-                                      Colors.green.withValues(alpha: 0.03),
-                                    ],
+                                    colors: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? [
+                                            Colors.blue.withValues(alpha: 0.15),
+                                            Colors.blue.withValues(alpha: 0.08),
+                                          ]
+                                        : [
+                                            Colors.blue.withValues(alpha: 0.1),
+                                            Colors.blue.withValues(alpha: 0.05),
+                                          ],
                                   ),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(
+                                      ResponsiveUtils.getCardBorderRadius(
+                                              context)
+                                          .toDouble()),
                                   border: Border.all(
-                                    color: Colors.green.withValues(alpha: 0.25),
+                                    color: Colors.blue.withValues(
+                                        alpha: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? 0.4
+                                            : 0.3),
                                     width: 1.5,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.green.withValues(alpha: 0.08),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 6),
+                                      color: Colors.blue.withValues(alpha: 0.1),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 8),
                                     ),
                                   ],
                                 ),
-                                child: Row(
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.green.shade400,
-                                            Colors.green.shade600,
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.green.shade400
-                                                .withValues(alpha: 0.3),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: ResponsiveUtils.getIconSize(
+                                                  context) *
+                                              1.25,
+                                          height: ResponsiveUtils.getIconSize(
+                                                  context) *
+                                              1.25,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.blue.shade400,
+                                                Colors.blue.shade600,
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                                ResponsiveUtils
+                                                        .getCardBorderRadius(
+                                                            context) *
+                                                    0.65),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.blue.shade400
+                                                    .withValues(alpha: 0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${idx + 1}',
-                                          style: const TextStyle(
+                                          child: Icon(
+                                            Icons.lightbulb,
                                             color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
+                                            size: ResponsiveUtils.getIconSize(
+                                                    context) *
+                                                0.7,
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Text(
-                                        step,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          height: 1.6,
-                                          color: Colors.grey.shade800,
-                                          fontWeight: FontWeight.w500,
-                                          letterSpacing: 0.1,
+                                        SizedBox(
+                                            width: ResponsiveUtils
+                                                    .getColumnSpacing(context) *
+                                                0.5),
+                                        Expanded(
+                                          child: Text(
+                                            'Insight',
+                                            style: TextStyle(
+                                              fontSize: ResponsiveUtils
+                                                      .getTitleFontSize(
+                                                          context) *
+                                                  0.65,
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.blue.shade300
+                                                  : Colors.blue.shade700,
+                                              letterSpacing: 0.2,
+                                            ),
+                                          ),
                                         ),
+                                      ],
+                                    ),
+                                    SizedBox(
+                                        height:
+                                            ResponsiveUtils.getColumnSpacing(
+                                                    context) *
+                                                0.5),
+                                    Text(
+                                      widget.entry.aiFeedback!,
+                                      style: TextStyle(
+                                        fontSize:
+                                            ResponsiveUtils.getBodyFontSize(
+                                                    context) *
+                                                0.9,
+                                        height: 1.7,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.grey.shade800,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.1,
                                       ),
                                     ),
                                   ],
@@ -888,51 +903,185 @@ class _JournalReadingViewState extends State<JournalReadingView> {
                               ),
                             ),
                           ),
-                        );
-                      }),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-              ],
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+
+                    // Actionable Steps Section
+                    if (widget.entry.actionableSteps != null &&
+                        widget.entry.actionableSteps!.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Actionable Steps',
+                            style: TextStyle(
+                              fontSize:
+                                  ResponsiveUtils.getTitleFontSize(context) *
+                                      0.7,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.grey.shade800,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          SizedBox(
+                              height:
+                                  ResponsiveUtils.getColumnSpacing(context) *
+                                      0.75),
+                          ...widget.entry.actionableSteps!
+                              .asMap()
+                              .entries
+                              .map((e) {
+                            int idx = e.key;
+                            String step = e.value;
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                  bottom: ResponsiveUtils.getColumnSpacing(
+                                          context) *
+                                      0.75),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                    ResponsiveUtils.getCardBorderRadius(context)
+                                        .toDouble()),
+                                child: BackdropFilter(
+                                  filter:
+                                      ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                  child: Container(
+                                    padding: EdgeInsets.all(
+                                        ResponsiveUtils.getDefaultPadding(
+                                                context)
+                                            .toDouble()),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? [
+                                                Colors.green
+                                                    .withValues(alpha: 0.15),
+                                                Colors.green
+                                                    .withValues(alpha: 0.08),
+                                              ]
+                                            : [
+                                                Colors.green
+                                                    .withValues(alpha: 0.08),
+                                                Colors.green
+                                                    .withValues(alpha: 0.03),
+                                              ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(
+                                          ResponsiveUtils.getCardBorderRadius(
+                                                  context)
+                                              .toDouble()),
+                                      border: Border.all(
+                                        color: Colors.green.withValues(
+                                            alpha:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? 0.35
+                                                    : 0.25),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green
+                                              .withValues(alpha: 0.08),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: ResponsiveUtils.getIconSize(
+                                                  context) *
+                                              1.1,
+                                          height: ResponsiveUtils.getIconSize(
+                                                  context) *
+                                              1.1,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.green.shade400,
+                                                Colors.green.shade600,
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                                ResponsiveUtils
+                                                        .getCardBorderRadius(
+                                                            context) *
+                                                    0.65),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.green.shade400
+                                                    .withValues(alpha: 0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '${idx + 1}',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: ResponsiveUtils
+                                                        .getBodyFontSize(
+                                                            context) *
+                                                    0.8,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                            width: ResponsiveUtils
+                                                    .getColumnSpacing(context) *
+                                                0.5),
+                                        Expanded(
+                                          child: Text(
+                                            step,
+                                            style: TextStyle(
+                                              fontSize: ResponsiveUtils
+                                                      .getBodyFontSize(
+                                                          context) *
+                                                  0.95,
+                                              height: 1.6,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white
+                                                  : Colors.grey.shade800,
+                                              fontWeight: FontWeight.w500,
+                                              letterSpacing: 0.1,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          SizedBox(
+                              height:
+                                  ResponsiveUtils.getColumnSpacing(context)),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
   }
-
-  Color _getMoodColor(String? mood) {
-    switch (mood?.toLowerCase()) {
-      case 'positive':
-        return Colors.green;
-      case 'negative':
-        return Colors.red;
-      case 'neutral':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  LinearGradient _getMoodGradient(String? mood) {
-    switch (mood?.toLowerCase()) {
-      case 'positive':
-        return LinearGradient(
-          colors: [Colors.green.shade400, Colors.green.shade600],
-        );
-      case 'negative':
-        return LinearGradient(
-          colors: [Colors.red.shade400, Colors.red.shade600],
-        );
-      case 'neutral':
-        return LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
-        );
-      default:
-        return LinearGradient(
-          colors: [Colors.grey.shade400, Colors.grey.shade600],
-        );
-    }
-  }
 }
-
+// --- END OF JOURNAL READING VIEW ---

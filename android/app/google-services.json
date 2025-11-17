@@ -12,7 +12,12 @@
           "package_name": "com.example.adaptive_planner"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "238339267074-v5uvrh3hb0col504m3pbprcmaddqak9m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBGKyDzdDMtes43YvaE0ihON7B8hurr4Mo"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "238339267074-v5uvrh3hb0col504m3pbprcmaddqak9m.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "238339267074-u4fk7m4v5653c874mprcautuouoo87vk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.adaptivePlanner"
+              }
+            }
+          ]
         }
       }
     }
