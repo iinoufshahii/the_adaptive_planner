@@ -243,9 +243,16 @@ class AiService {
       }
     } catch (e) {
       debugPrint('HTTP request error: $e');
+      throw Exception('HTTP analysis failed');
     }
 
-    throw Exception('HTTP analysis failed');
+    // Return error response if we reach here (no successful return)
+    debugPrint('=== AI Service: HTTP method returning error response ===');
+    return {
+      'mood': 'Error',
+      'feedback': 'Could not analyze entry via HTTP. Please try again later.',
+      'actionableSteps': <String>[],
+    };
   }
 
   /// Tests OpenRouter connection with a simple analysis.
@@ -261,5 +268,12 @@ class AiService {
       debugPrint('Connection test failed: $e');
       return false;
     }
+  }
+
+  /// Checks if the API key is properly configured (not a placeholder).
+  ///
+  /// Returns true if API key appears to be configured, false if it's a placeholder.
+  bool isApiKeyConfigured() {
+    return _apiKey != 'INSERT API KEY' && _apiKey.isNotEmpty;
   }
 }

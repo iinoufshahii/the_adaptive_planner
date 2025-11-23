@@ -145,36 +145,46 @@ void main() {
       });
     });
 
-    group('AI Service - OpenRouter Integration', () {
-      test('should analyze journal entry sentiment', () async {
-        const journalText =
-            'Today was amazing! I completed all my tasks and feel great about my progress.';
+  group('AI Service - OpenRouter Integration', () {
+    test('should analyze journal entry sentiment', () async {
+      // Skip test if API key is not configured
+      if (!aiService.isApiKeyConfigured()) {
+        print('Skipping real API test - API key not configured');
+        return;
+      }
 
-        // Analyze text
-        final analysis = await aiService.analyzeJournalEntry(journalText);
+      const journalText =
+          'Today was amazing! I completed all my tasks and feel great about my progress.';
 
-        expect(analysis, isNotNull);
-        expect(analysis['mood'], isNotNull);
-        expect(analysis['feedback'], isNotNull);
-        expect(analysis['actionableSteps'], isNotNull);
+      // Analyze text
+      final analysis = await aiService.analyzeJournalEntry(journalText);
 
-        // Mood should be one of the expected values
-        expect(
-          ['Positive', 'Negative', 'Neutral', 'Mixed']
-              .contains(analysis['mood']),
-          isTrue,
-        );
+      expect(analysis, isNotNull);
+      expect(analysis['mood'], isNotNull);
+      expect(analysis['feedback'], isNotNull);
+      expect(analysis['actionableSteps'], isNotNull);
 
-        // Feedback should be a string
-        expect(analysis['feedback'], isA<String>());
-        expect((analysis['feedback'] as String).isNotEmpty, isTrue);
+      // Mood should be one of the expected values
+      expect(
+        ['Positive', 'Negative', 'Neutral', 'Mixed']
+            .contains(analysis['mood']),
+        isTrue,
+      );
 
-        // Actionable steps should be a list
+      // Feedback should be a string
+      expect(analysis['feedback'], isA<String>());
+      expect((analysis['feedback'] as String).isNotEmpty, isTrue);        // Actionable steps should be a list
         expect(analysis['actionableSteps'], isA<List>());
         expect((analysis['actionableSteps'] as List).isNotEmpty, isTrue);
       });
 
       test('should handle different sentiment types', () async {
+        // Skip test if API key is not configured
+        if (!aiService.isApiKeyConfigured()) {
+          print('Skipping real API test - API key not configured');
+          return;
+        }
+
         const positiveText = 'I feel amazing and accomplished today!';
         const negativeText = 'Everything went wrong and I feel terrible.';
         const neutralText = 'Today was okay, nothing special happened.';
@@ -193,6 +203,12 @@ void main() {
       });
 
       test('should handle empty text gracefully', () async {
+        // Skip test if API key is not configured
+        if (!aiService.isApiKeyConfigured()) {
+          print('Skipping real API test - API key not configured');
+          return;
+        }
+
         const emptyText = '';
 
         final analysis = await aiService.analyzeJournalEntry(emptyText);
