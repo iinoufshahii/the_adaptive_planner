@@ -479,7 +479,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Update user profile
         await user.updatePhotoURL(downloadURL);
         await user.reload();
-        debugPrint('User profile updated with Firebase Storage URL');('User profile updated with Firebase Storage URL');
+        debugPrint('User profile updated with Firebase Storage URL');
+        ('User profile updated with Firebase Storage URL');
 
         if (mounted) {
           setState(() => _uploadingAvatar = false);
