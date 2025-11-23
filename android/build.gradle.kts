@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 allprojects {
     repositories {
         google()
@@ -15,7 +17,6 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 // Ensure Kotlin compiles with JVM target 17 as well
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions {
         jvmTarget = "17"
