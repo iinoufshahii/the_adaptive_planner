@@ -14,13 +14,13 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -45,8 +45,8 @@ android {
     gradle.projectsEvaluated {
         tasks.withType<JavaCompile> {
             options.apply {
-                sourceCompatibility = "11"
-                targetCompatibility = "11"
+                sourceCompatibility = "17"
+                targetCompatibility = "17"
                 compilerArgs.addAll(listOf(
                     "-Xlint:deprecation",
                     "-Xlint:-options"  // Suppress obsolete option warnings
