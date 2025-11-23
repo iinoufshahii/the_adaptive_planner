@@ -329,7 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final bytes = base64Decode(base64String);
         return MemoryImage(bytes);
       } catch (e) {
-        print('Error decoding base64 image: $e');
+        debugPrint('Error decoding base64 image: $e');
         return null;
       }
     } else {
@@ -356,7 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   backgroundImage: MemoryImage(bytes),
                 );
               } catch (e) {
-                print('Error decoding avatar: $e');
+                debugPrint('Error decoding avatar: $e');
               }
             }
           }
@@ -431,7 +431,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Pick image from camera/gallery and upload to Firebase
   Future<void> _pickAndUploadImage(ImageSource source) async {
     try {
-      print('Starting image pick from $source');
+      debugPrint('Starting image pick from $source');
 
       final pickedFile = await _imagePicker.pickImage(
         source: source,
@@ -441,11 +441,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (pickedFile == null) {
-        print('No image selected');
+        debugPrint('No image selected');
         return;
       }
 
-      print('Image picked: ${pickedFile.path}');
+      debugPrint('Image picked: ${pickedFile.path}');
       setState(() => _uploadingAvatar = true);
 
       // Check authentication
@@ -454,7 +454,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         throw Exception('User not authenticated');
       }
 
-      print('User authenticated: ${user.uid}');
+      debugPrint('User authenticated: ${user.uid}');
 
       try {
         // Try Firebase Storage first
@@ -463,23 +463,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             .child('avatars')
             .child('${user.uid}.jpg');
 
-        print('Storage reference created: ${storageRef.fullPath}');
+        debugPrint('Storage reference created: ${storageRef.fullPath}');
 
         // Upload file
-        print('Starting file upload to Firebase Storage...');
+        debugPrint('Starting file upload to Firebase Storage...');
         final uploadTask = storageRef.putFile(File(pickedFile.path));
 
         await uploadTask;
-        print('File uploaded to Firebase Storage successfully');
+        debugPrint('File uploaded to Firebase Storage successfully');
 
         // Get download URL
         final downloadURL = await storageRef.getDownloadURL();
-        print('Download URL obtained: $downloadURL');
+        debugPrint('Download URL obtained: $downloadURL');
 
         // Update user profile
         await user.updatePhotoURL(downloadURL);
         await user.reload();
-        print('User profile updated with Firebase Storage URL');
+        debugPrint('User profile updated with Firebase Storage URL');('User profile updated with Firebase Storage URL');
 
         if (mounted) {
           setState(() => _uploadingAvatar = false);
@@ -488,8 +488,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
         }
       } catch (storageError) {
-        print('Firebase Storage error: $storageError');
-        print('Falling back to Firestore storage...');
+        debugPrint('Firebase Storage error: $storageError');
+        debugPrint('Falling back to Firestore storage...');
 
         // Fallback: Convert to base64 and store in Firestore
         final bytes = await File(pickedFile.path).readAsBytes();
@@ -508,7 +508,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await user.updatePhotoURL('firestore:avatar');
         await user.reload();
 
-        print('Avatar stored in Firestore');
+        debugPrint('Avatar stored in Firestore');
 
         if (mounted) {
           setState(() => _uploadingAvatar = false);
@@ -518,7 +518,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
-      print('Avatar upload error: $e');
+      debugPrint('Avatar upload error: $e');
       if (mounted) {
         setState(() => _uploadingAvatar = false);
         ScaffoldMessenger.of(context).showSnackBar(
