@@ -8,9 +8,10 @@ workflows:
       xcode: latest
       cocoapods: default
     cache:
-      - ~/.pub-cache
-      - $FLUTTER_ROOT/.pub-cache
-      - $HOME/.gradle/caches
+      paths:
+        - ~/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.gradle/caches
     triggering:
       events:
         - push
@@ -57,8 +58,9 @@ workflows:
       xcode: latest
       cocoapods: default
     cache:
-      - ~/.pub-cache
-      - $FLUTTER_ROOT/.pub-cache
+      paths:
+        - ~/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
     triggering:
       events:
         - push
@@ -108,8 +110,9 @@ workflows:
       flutter: stable
       node: latest
     cache:
-      - ~/.pub-cache
-      - $FLUTTER_ROOT/.pub-cache
+      paths:
+        - ~/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
     triggering:
       events:
         - push
@@ -196,10 +199,11 @@ workflows:
       cocoapods: default
       node: latest
     cache:
-      - ~/.pub-cache
-      - $FLUTTER_ROOT/.pub-cache
-      - $HOME/.gradle/caches
-      - ios/Pods
+      paths:
+        - ~/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.gradle/caches
+        - ios/Pods
     triggering:
       events:
         - tag
