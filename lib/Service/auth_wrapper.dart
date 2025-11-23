@@ -5,6 +5,7 @@
 /// - WelcomeScreen: If user is not authenticated
 ///
 /// Shows loading indicator while checking auth state.
+library;
 
 import 'package:adaptive_planner/Screens/dashboard_screen.dart';
 import 'package:adaptive_planner/Screens/welcome_screen.dart';

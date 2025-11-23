@@ -1,6 +1,7 @@
 /// Journal screen for viewing, creating, editing, and deleting journal entries.
 /// Uses StreamBuilder to listen for real-time journal entries from Firestore.
 /// Displays entries in a grid/list with reading view, edit capability, and delete confirmation.
+library;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';

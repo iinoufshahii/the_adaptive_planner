@@ -1,5 +1,6 @@
 /// Onboarding/welcome screen with sequential animations for title, subtitle, buttons, and gradient.
 /// Shows app intro with smooth fade-in and slide transitions before login redirect.
+library;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

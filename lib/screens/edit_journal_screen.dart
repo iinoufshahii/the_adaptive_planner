@@ -2,6 +2,7 @@
 /// Provides text editor for composing/editing journal entries with glassmorphic UI.
 /// Handles entry persistence to Firestore with confirmation dialog before saving.
 /// Displays save confirmation and provides user feedback on operation status.
+library;
 
 import 'dart:ui';
 

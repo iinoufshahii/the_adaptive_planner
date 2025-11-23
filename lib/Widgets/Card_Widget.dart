@@ -1,5 +1,6 @@
 /// Reusable card widgets for consistent UI design across the app.
 /// Contains modular, theme-aware card components for journal entries, tasks, and other content.
+library;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -878,7 +879,7 @@ class JournalCard extends StatelessWidget {
                                       ],
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ],
                           ),
@@ -1322,7 +1323,7 @@ class _TaskCardState extends State<TaskCard> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ],
                 ],

@@ -2,6 +2,7 @@
 /// Displays task metadata (priority, deadline, category, energy level).
 /// Integrates with AiService to suggest subtasks via LLM for complex tasks.
 /// Allows selecting and saving suggested subtasks to the task record.
+library;
 
 import 'dart:ui';
 
@@ -29,7 +30,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   final AiService _aiService = AiService();
   bool _isGeneratingSubtasks = false;
   List<String> _suggestedSubtasks = [];
-  Set<int> _selectedSubtasks = {};
+  final Set<int> _selectedSubtasks = {};
 
   Future<void> _generateSubtasks() async {
     if (_isGeneratingSubtasks) return;

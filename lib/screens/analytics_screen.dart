@@ -1,6 +1,7 @@
 /// Analytics screen displaying productivity patterns and task completion stats.
 /// Shows weekly productivity trends, best times/days for work, sentiment streak,
 /// and overall task completion progress. Uses caching to prevent unnecessary rebuilds.
+library;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -468,7 +469,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final spacing = cardPadding * 0.75;
     final iconSize = ResponsiveUtils.getIconSize(context) * 0.6;
 
-    final cardWidget = (
+    Card cardWidget(
         {required String title,
         required String value,
         required IconData icon}) {
@@ -517,7 +518,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         ),
       );
-    };
+    }
 
     // Side by side on all screen sizes
     return Row(

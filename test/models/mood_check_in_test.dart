@@ -4,6 +4,7 @@
 /// - Constructor and field initialization
 /// - Serialization to/from Firestore
 /// - Mood and energy level values
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

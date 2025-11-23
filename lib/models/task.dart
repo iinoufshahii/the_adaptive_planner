@@ -11,6 +11,7 @@
 /// - Priority and energy-level based task recommendations
 /// - Full Firestore integration with safe timestamp conversion
 /// - Immutable-style copying for state management
+library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 

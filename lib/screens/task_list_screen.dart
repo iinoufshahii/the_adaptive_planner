@@ -1,6 +1,7 @@
 /// Task list screen with filtering, sorting, and category selection.
 /// Displays tasks from Firestore with ability to filter by completion status and category.
 /// Uses reusable card widgets from card_widget.dart for consistent UI design.
+library;
 // ignore_for_file: deprecated_member_use
 
 import 'package:firebase_auth/firebase_auth.dart';

@@ -1,6 +1,7 @@
 /// Clean, unified dashboard screen with mood check-in integration.
 /// Provides main navigation hub with bottom/side navigation for mobile/web layouts.
 /// Manages 5 main screens: Home, Journal, Tasks, Analytics, Settings.
+library;
 
 import 'dart:async';
 import 'dart:ui';

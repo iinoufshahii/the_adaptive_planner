@@ -7,6 +7,7 @@
 /// 
 /// All dialogs support [AppMessageType] for color-coded messaging (success, error, info, warning)
 /// and follow Material Design 3 theming throughout the app.
+library;
 
 import 'package:flutter/material.dart';
 

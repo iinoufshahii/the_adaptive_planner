@@ -11,6 +11,7 @@
 /// - Order-based sequencing within parent task
 /// - Completion tracking independent of parent task
 /// - Immutable-style updates via copyWith()
+library;
 
 /// Model representing a subtask within a parent Task.
 /// Subtasks enable task decomposition into smaller, manageable work units

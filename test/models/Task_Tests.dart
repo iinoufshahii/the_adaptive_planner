@@ -5,6 +5,7 @@
 /// - Proper enum handling
 /// - Null value handling
 /// - Timestamp conversions
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

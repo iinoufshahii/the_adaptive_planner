@@ -1,6 +1,7 @@
 /// Form screen for adding new tasks or editing existing tasks.
 /// Supports priority, category, energy level, and deadline selection with datetime picker.
 /// Uses glass-effect card styling to match journal screen aesthetic with dark mode support.
+library;
 
 import 'dart:ui';
 

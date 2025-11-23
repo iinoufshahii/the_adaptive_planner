@@ -2,6 +2,7 @@
 ///
 /// Tests basic UI components that don't require Firebase or complex providers.
 /// Focuses on widget rendering and basic functionality.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

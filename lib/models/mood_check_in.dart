@@ -8,6 +8,7 @@
 /// - Separate tracking for check-in time vs creation time
 /// - Wellness tracking and personalization foundation
 /// - Flexible DateTime parsing (DateTime or Timestamp)
+library;
 
 /// Model representing a user's mood check-in data at a specific point in time.
 ///

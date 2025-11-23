@@ -1,6 +1,7 @@
 /// Full-screen category management interface for creating, editing, and deleting custom task categories.
 /// Displays real-time category list with Firestore persistence and automatic task synchronization.
 /// Users can add unlimited custom categories while default categories are protected.
+library;
 
 import 'package:flutter/material.dart';
 

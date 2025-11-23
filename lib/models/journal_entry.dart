@@ -9,6 +9,7 @@
 /// - AI-generated feedback and actionable steps
 /// - Mood and sentiment tracking
 /// - Full Firestore integration
+library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 

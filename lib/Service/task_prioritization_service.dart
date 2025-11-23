@@ -9,6 +9,7 @@
 /// - Mood-aware task recommendations
 /// - Completion status filtering
 /// - Consistent scoring methodology
+library;
 
 import '../models/journal_entry.dart';
 import '../models/mood_check_in.dart';

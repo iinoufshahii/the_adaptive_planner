@@ -2,6 +2,7 @@
 /// Persists progress to Firebase via FocusTimerManager -> FocusService.
 /// The manager updates Firestore each minute (and on pause/reset/phase complete).
 /// This screen is the UI layer with settings dialog for custom break durations.
+library;
 
 import 'package:adaptive_planner/models/focus_session.dart';
 import 'package:adaptive_planner/Service/focus_service.dart';

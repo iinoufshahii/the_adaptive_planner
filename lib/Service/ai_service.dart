@@ -7,6 +7,7 @@
 ///
 /// Uses OpenRouter as the API provider for cost-effective model access.
 /// Implements retry logic with HTTP fallback for reliability.
+library;
 
 import 'dart:convert';
 

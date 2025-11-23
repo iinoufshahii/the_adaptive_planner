@@ -5,6 +5,7 @@
 /// - AI feedback and actionable steps
 /// - Serialization/deserialization
 /// - Entry type handling (full vs moodCheckIn)
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

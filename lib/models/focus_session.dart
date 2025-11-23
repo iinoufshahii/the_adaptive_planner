@@ -9,6 +9,7 @@
 /// - Pomodoro configuration management
 /// - Safe default preferences for new users
 /// - Full type safety with null checks
+library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 

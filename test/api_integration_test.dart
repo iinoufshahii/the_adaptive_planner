@@ -6,6 +6,7 @@
 /// - Local Storage (SharedPreferences)
 /// - Model serialization/deserialization
 /// - Service method availability (Firebase services tested for method existence)
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';

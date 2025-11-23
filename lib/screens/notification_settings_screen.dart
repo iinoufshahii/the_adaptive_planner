@@ -1,6 +1,7 @@
 /// Modern notification settings screen with customizable time preferences.
 /// Uses app theme for consistent design with glass effect cards and responsive layout.
 /// Allows users to configure notification times and enable/disable individual notifications.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

@@ -1,5 +1,6 @@
 /// Password reset screen with Firebase email-based recovery.
 /// Validates email, sends reset link via Firebase Auth, displays success/error feedback.
+library;
 import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -538,7 +539,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     // Image - positioned on top to overlap the card
                     Positioned(
                       top: -109,
-                      child: Container(
+                      child: SizedBox(
                         height: 250,
                         width: 350,
                         child: ClipRRect(

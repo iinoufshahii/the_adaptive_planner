@@ -1,6 +1,7 @@
 /// Authentication screen with tab-based login and signup forms.
 /// Handles Firebase Auth operations with email/password, form validation, error handling.
 /// Displays visual feedback with snackbars for success/error states.
+library;
 import 'dart:ui';
 
 import 'package:adaptive_planner/Screens/dashboard_screen.dart';
@@ -369,7 +370,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen>
                     // Image - positioned on top to overlap the card
                     Positioned(
                       top: -109, // Moved image higher to sit on top of card
-                      child: Container(
+                      child: SizedBox(
                         height: 250, // Adjust image height
                         width: 350, // Adjust image width
                         child: ClipRRect(

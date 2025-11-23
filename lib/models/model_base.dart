@@ -5,6 +5,7 @@
 /// - Enum/String conversion utilities for all models
 /// - Safe DateTime parsing across multiple formats (DateTime, Timestamp, String)
 /// - Reusable factory patterns for Firestore integration
+library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 

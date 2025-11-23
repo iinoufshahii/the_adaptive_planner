@@ -1,5 +1,6 @@
 /// Settings screen for user preferences, theme toggle, notifications, and account management.
 /// Provides logout with confirmation dialog, theme switching via Provider pattern.
+library;
 
 import 'dart:convert';
 import 'dart:io';

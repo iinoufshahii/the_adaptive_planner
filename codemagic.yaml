@@ -152,8 +152,9 @@ workflows:
     environment:
       flutter: stable
     cache:
-      - ~/.pub-cache
-      - $FLUTTER_ROOT/.pub-cache
+      paths:
+        - ~/.pub-cache
+        - $FLUTTER_ROOT/.pub-cache
     triggering:
       events:
         - push

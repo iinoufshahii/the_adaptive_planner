@@ -5,6 +5,7 @@
 /// - Custom user-created categories
 /// - Category name updates across all associated tasks
 /// - Deletion with automatic reassignment to "No Category"
+library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

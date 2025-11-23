@@ -6,6 +6,7 @@
 /// - User energy levels
 /// - Mood compatibility
 /// - Completion status
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:adaptive_planner/models/task.dart';

@@ -6,6 +6,7 @@
 /// - Mood tracking and mood-based recommendations
 /// - Focus session management
 /// - Account data lifecycle
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:adaptive_planner/models/task.dart';

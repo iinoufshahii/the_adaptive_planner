@@ -9,6 +9,7 @@
 /// - Mood and sentiment analysis integration
 /// - Factory constructor for mood check-in conversion
 /// - Immutable-style updates via copyWith()
+library;
 
 /// Model aggregating current user emotional and energy status for task prioritization and recommendations.
 ///
