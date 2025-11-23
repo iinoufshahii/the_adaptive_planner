@@ -145,35 +145,36 @@ void main() {
       });
     });
 
-  group('AI Service - OpenRouter Integration', () {
-    test('should analyze journal entry sentiment', () async {
-      // Skip test if API key is not configured
-      if (!aiService.isApiKeyConfigured()) {
-        print('Skipping real API test - API key not configured');
-        return;
-      }
+    group('AI Service - OpenRouter Integration', () {
+      test('should analyze journal entry sentiment', () async {
+        // Skip test if API key is not configured
+        if (!aiService.isApiKeyConfigured()) {
+          print('Skipping real API test - API key not configured');
+          return;
+        }
 
-      const journalText =
-          'Today was amazing! I completed all my tasks and feel great about my progress.';
+        const journalText =
+            'Today was amazing! I completed all my tasks and feel great about my progress.';
 
-      // Analyze text
-      final analysis = await aiService.analyzeJournalEntry(journalText);
+        // Analyze text
+        final analysis = await aiService.analyzeJournalEntry(journalText);
 
-      expect(analysis, isNotNull);
-      expect(analysis['mood'], isNotNull);
-      expect(analysis['feedback'], isNotNull);
-      expect(analysis['actionableSteps'], isNotNull);
+        expect(analysis, isNotNull);
+        expect(analysis['mood'], isNotNull);
+        expect(analysis['feedback'], isNotNull);
+        expect(analysis['actionableSteps'], isNotNull);
 
-      // Mood should be one of the expected values
-      expect(
-        ['Positive', 'Negative', 'Neutral', 'Mixed']
-            .contains(analysis['mood']),
-        isTrue,
-      );
+        // Mood should be one of the expected values
+        expect(
+          ['Positive', 'Negative', 'Neutral', 'Mixed']
+              .contains(analysis['mood']),
+          isTrue,
+        );
 
-      // Feedback should be a string
-      expect(analysis['feedback'], isA<String>());
-      expect((analysis['feedback'] as String).isNotEmpty, isTrue);        // Actionable steps should be a list
+        // Feedback should be a string
+        expect(analysis['feedback'], isA<String>());
+        expect((analysis['feedback'] as String).isNotEmpty,
+            isTrue); // Actionable steps should be a list
         expect(analysis['actionableSteps'], isA<List>());
         expect((analysis['actionableSteps'] as List).isNotEmpty, isTrue);
       });

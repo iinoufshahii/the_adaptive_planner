@@ -20,8 +20,7 @@ import 'package:http/http.dart' as http;
 /// mood detection, and actionable feedback for journal entries.
 class AiService {
   /// OpenRouter API key for authentication
-  static const String _apiKey =
-      'INSERT API KEY';
+  static const String _apiKey = 'INSERT API KEY';
 
   /// Static flag to track if service is initialized
   static bool _isInitialized = false;
