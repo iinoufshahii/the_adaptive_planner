@@ -178,12 +178,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   const SizedBox(height: 5),
                                   Row(
                                     children: [
-                                      IconButton(
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                        icon: const Icon(Icons.arrow_back),
-                                        color: mutedNeutralDark,
+                                      Container(
+                                        margin: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.3),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(),
+                                          icon: const Icon(Icons.arrow_back),
+                                          color: mutedNeutralDark,
+                                          tooltip: 'Go back to login',
+                                          splashRadius: 24,
+                                        ),
                                       ),
                                       Expanded(
                                         child: Text(

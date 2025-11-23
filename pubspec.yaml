@@ -49,6 +49,9 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
   device_preview: ^1.2.0
+  # Firebase testing
+  fake_cloud_firestore: ^4.0.0
+  firebase_auth_mocks: ^0.15.0
   # fl_chart: ^1.1.1
 
 flutter:
