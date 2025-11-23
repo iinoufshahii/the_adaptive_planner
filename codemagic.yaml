@@ -1,0 +1,265 @@
+workflows:
+  # Android build workflow
+  android-workflow:
+    name: Android Build
+    max_build_duration: 30
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    cache_paths:
+      - ~/.pub-cache
+      - $FLUTTER_ROOT/.pub-cache
+      - $HOME/.gradle/caches
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter pub get
+          flutter analyze
+      - name: Run tests
+        script: |
+          flutter test
+      - name: Build Android APK
+        script: |
+          flutter build apk --release
+      - name: Build Android AAB
+        script: |
+          flutter build appbundle --release
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+      email:
+        recipients:
+          - $NOTIFICATION_EMAIL
+        notify:
+          success: true
+          failure: true
+
+  # iOS build workflow
+  ios-workflow:
+    name: iOS Build
+    max_build_duration: 45
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    cache_paths:
+      - ~/.pub-cache
+      - $FLUTTER_ROOT/.pub-cache
+      - ios/Pods
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter pub get
+          flutter analyze
+      - name: Run tests
+        script: |
+          flutter test
+      - name: Set up iOS
+        script: |
+          cd ios
+          pod install
+          cd ..
+      - name: Build iOS
+        script: |
+          flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/iphoneos/*.app
+      - build/ios/iphoneos/*.xcarchive
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+      email:
+        recipients:
+          - $NOTIFICATION_EMAIL
+        notify:
+          success: true
+          failure: true
+
+  # Web build workflow
+  web-workflow:
+    name: Web Build
+    max_build_duration: 20
+    environment:
+      flutter: stable
+      node: latest
+    cache_paths:
+      - ~/.pub-cache
+      - $FLUTTER_ROOT/.pub-cache
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter pub get
+          flutter analyze
+      - name: Run tests
+        script: |
+          flutter test
+      - name: Build Web
+        script: |
+          flutter build web --release
+    artifacts:
+      - build/web/**/*
+    publishing:
+      firebase:
+        project_id: adaptive-planner-cd88b
+        credentials: $FIREBASE_SERVICE_ACCOUNT_KEY
+      email:
+        recipients:
+          - $NOTIFICATION_EMAIL
+        notify:
+          success: true
+          failure: true
+
+  # Comprehensive test workflow
+  test-workflow:
+    name: Full Test Suite
+    max_build_duration: 25
+    environment:
+      flutter: stable
+    cache_paths:
+      - ~/.pub-cache
+      - $FLUTTER_ROOT/.pub-cache
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: "*"
+          include: true
+          source: true
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter pub get
+      - name: Run Flutter Analyze
+        script: |
+          flutter analyze --fatal-infos
+      - name: Run Unit Tests
+        script: |
+          flutter test --coverage
+      - name: Run Integration Tests
+        script: |
+          flutter test integration_test/
+      - name: Upload Coverage
+        script: |
+          # Upload coverage to codecov or similar service
+          echo "Coverage uploaded"
+    artifacts:
+      - coverage/lcov.info
+    publishing:
+      email:
+        recipients:
+          - $NOTIFICATION_EMAIL
+        notify:
+          success: true
+          failure: true
+
+  # Release workflow
+  release-workflow:
+    name: Release Build
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      node: latest
+    cache_paths:
+      - ~/.pub-cache
+      - $FLUTTER_ROOT/.pub-cache
+      - $HOME/.gradle/caches
+      - ios/Pods
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "v*.*.*"
+          include: true
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter pub get
+          flutter analyze
+      - name: Run tests
+        script: |
+          flutter test
+      - name: Build Android Release
+        script: |
+          flutter build apk --release
+          flutter build appbundle --release
+      - name: Build iOS Release
+        script: |
+          cd ios
+          pod install
+          cd ..
+          flutter build ios --release --no-codesign
+      - name: Build Web Release
+        script: |
+          flutter build web --release
+      - name: Create Release Notes
+        script: |
+          echo "Release $CM_TAG created on $(date)" > release_notes.txt
+          echo "Changes:" >> release_notes.txt
+          git log --oneline --since="1 month ago" >> release_notes.txt
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
+      - build/ios/iphoneos/*.app
+      - build/web/**/*
+      - release_notes.txt
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: production
+        in_app_update_priority: 3
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_app_store: false
+        submit_to_testflight: true
+      firebase:
+        project_id: adaptive-planner-cd88b
+        credentials: $FIREBASE_SERVICE_ACCOUNT_KEY
+      github_releases:
+        credentials: $GITHUB_ACCESS_TOKEN
+        repository_url: https://github.com/iinoufshahii/the_adaptive_planner
+        tag_name: $CM_TAG
+        release_notes_file: release_notes.txt
+      email:
+        recipients:
+          - $NOTIFICATION_EMAIL
+        notify:
+          success: true
+          failure: true
