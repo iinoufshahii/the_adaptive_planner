@@ -21,7 +21,7 @@ import 'package:http/http.dart' as http;
 class AiService {
   /// OpenRouter API key for authentication
   static const String _apiKey =
-      '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';
+      'INSERT API KEY';
 
   /// Static flag to track if service is initialized
   static bool _isInitialized = false;
