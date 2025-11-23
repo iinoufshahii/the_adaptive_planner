@@ -59,7 +59,6 @@ workflows:
     cache:
       - ~/.pub-cache
       - $FLUTTER_ROOT/.pub-cache
-      - ios/Pods
     triggering:
       events:
         - push
@@ -79,6 +78,7 @@ workflows:
       - name: Set up iOS
         script: |
           cd ios
+          rm -rf Pods Podfile.lock Runner.xcworkspace/xcuserdata
           pod install
           cd ..
       - name: Build iOS
